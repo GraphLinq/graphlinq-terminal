@@ -18,7 +18,8 @@ import {
   RiPlayLine,
   RiPulseLine,
   RiLoader4Line,
-  RiSparklingLine
+  RiSparklingLine,
+  RiAppsLine
 } from 'react-icons/ri';
 import { 
   FiUser, 
@@ -35,6 +36,7 @@ import {
   HiOutlineCog,
   HiOutlineTerminal
 } from 'react-icons/hi';
+import PromptTemplatesModal from './PromptTemplatesModal';
 import { aiService, AIMessage, AIProgressUpdate } from '../services/aiService';
 import AIConfigModal from './AIConfigModal';
 
@@ -68,6 +70,7 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
   const [progressUpdates, setProgressUpdates] = useState<AIProgressUpdate[]>([]);
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const [isThinking, setIsThinking] = useState<boolean>(false);
+  const [showTemplatesModal, setShowTemplatesModal] = useState<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -370,11 +373,21 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
     setIsCollapsed(!isCollapsed);
   };
 
+  // Handle template selection
+  const handleTemplateSelect = (prompt: string) => {
+    setInputValue(prompt);
+    setShowTemplatesModal(false);
+    // Focus input after template selection
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
+  };
+
   if (!isOpen) return null;
 
   return (
     <div 
-      className={`ai-assistant-panel ${isCollapsed ? 'collapsed' : ''}`}
+      className={`ai-assistant-panel ${isCollapsed ? 'collapsed' : ''} ${showTemplatesModal ? 'templates-open' : ''}`}
       onClick={handlePanelClick}
       onMouseDown={(e) => e.stopPropagation()}
       onKeyDown={handleKeyDown}
@@ -404,6 +417,16 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
             </div>
           </div>
           <div className="ai-controls">
+            <button
+              className="ai-control-btn templates"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowTemplatesModal(true);
+              }}
+              title="Quick Start Templates"
+            >
+              <RiAppsLine />
+            </button>
             <button
               className="ai-control-btn new-chat"
               onClick={(e) => {
@@ -574,6 +597,13 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
         isOpen={isConfigModalOpen}
         onClose={() => setIsConfigModalOpen(false)}
         onConfigSaved={handleConfigSaved}
+      />
+      
+      {/* Templates modal */}
+      <PromptTemplatesModal
+        isOpen={showTemplatesModal}
+        onClose={() => setShowTemplatesModal(false)}
+        onSelectTemplate={handleTemplateSelect}
       />
     </div>
   );

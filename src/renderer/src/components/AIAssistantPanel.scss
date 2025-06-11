@@ -74,10 +74,30 @@
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   font-family: $font-sans;
+  transition: width 0.3s ease-out;
+
+  // Expanded state when templates modal is open
+  &.templates-open {
+    width: 90vw;
+    max-width: 1600px;
+    
+    @media (max-width: $breakpoint-tablet) {
+      width: 100vw;
+    }
+  }
 
   // Collapsed state
   &.collapsed {
     width: 64px;
+    
+    &.templates-open {
+      width: 90vw;
+      max-width: 1600px;
+      
+      @media (max-width: $breakpoint-tablet) {
+        width: 100vw;
+      }
+    }
     
     .ai-header,
     .ai-messages,
@@ -86,6 +106,16 @@
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.2s ease-out;
+    }
+    
+    &.templates-open {
+      .ai-header,
+      .ai-messages,
+      .ai-input-area,
+      .ai-status-bar {
+        opacity: 1;
+        pointer-events: auto;
+      }
     }
     
     .ai-collapse-btn {
@@ -190,6 +220,14 @@
     border-color: rgba($accent-primary, 0.4);
     color: $accent-primary;
     transform: translateY(-1px);
+  }
+  
+  &.templates {
+    &:hover {
+      background: rgba($accent-secondary, 0.15);
+      border-color: rgba($accent-secondary, 0.4);
+      color: $accent-secondary;
+    }
   }
   
   &.new-chat {
