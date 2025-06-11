@@ -1,0 +1,845 @@
+@import '../styles/variables';
+
+// Animations
+@keyframes blink {
+  0%, 50% { 
+    opacity: 1; 
+  }
+  51%, 100% { 
+    opacity: 0.3; 
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes logoFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+// Terminal Container
+.terminal-container {
+  width: 100%;
+  height: 100%;
+  background: $bg-primary;
+  color: $text-primary;
+  font-family: $font-mono;
+  font-size: 14px;
+  line-height: 1.2;
+  overflow: hidden;
+  position: relative;
+  outline: none;
+  border-radius: $border-radius;
+  box-shadow: inset 0 0 0 1px rgba($border-color, 0.3);
+  transition: all 0.3s ease;
+
+  &.ai-writing-active {
+    box-shadow: 
+      inset 0 0 0 1px rgba($accent-primary, 0.6),
+      0 0 20px rgba($accent-primary, 0.2),
+      0 0 40px rgba($accent-primary, 0.1);
+    animation: ai-glow-pulse 2s ease-in-out infinite;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 
+      inset 0 0 0 1px rgba($accent-primary, 0.5),
+      0 0 10px rgba($accent-primary, 0.1);
+  }
+
+  &.ai-writing-active:focus {
+    box-shadow: 
+      inset 0 0 0 1px rgba($accent-primary, 0.8),
+      0 0 30px rgba($accent-primary, 0.3),
+      0 0 60px rgba($accent-primary, 0.15);
+  }
+}
+
+// Adjust terminal width when AI panel is open
+body.ai-panel-open .terminal-container {
+  width: calc(100% - 400px);
+  transition: width 0.3s ease-out;
+}
+
+// Adjust terminal width when AI panel is collapsed
+body.ai-panel-collapsed .terminal-container {
+  width: calc(100% - 48px);
+  transition: width 0.3s ease-out;
+}
+
+// Terminal Welcome Screen
+.terminal-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: $text-primary;
+  text-align: center;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, rgba($bg-primary, 0.95) 0%, rgba($bg-secondary, 0.95) 100%);
+  position: relative;
+  animation: fadeIn 0.8s ease-out;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 50% 30%, rgba($accent-primary, 0.08) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba($accent-tertiary, 0.03) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+}
+
+.terminal-logo {
+  margin-bottom: 40px;
+  position: relative;
+  z-index: 2;
+  animation: logoFloat 6s ease-in-out infinite;
+
+  img {
+    border-radius: $border-radius-large;
+    transition: all $transition-slow ease;
+    filter: drop-shadow(0 8px 24px rgba($accent-primary, 0.15));
+
+    &:hover {
+      transform: scale(1.08) rotate(2deg);
+      filter: drop-shadow(0 12px 32px rgba($accent-primary, 0.25));
+    }
+  }
+}
+
+.terminal-welcome-content {
+  margin-bottom: 48px;
+  position: relative;
+  z-index: 2;
+
+  h2 {
+    font-size: clamp(24px, 5vw, 36px);
+    font-weight: 700;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, $accent-primary 0%, $accent-secondary 30%, $accent-tertiary 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent 0%, $accent-tertiary 50%, transparent 100%);
+      border-radius: 1px;
+    }
+  }
+
+  p {
+    font-size: 16px;
+    color: rgba($text-primary, 0.8);
+    margin: 0;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    line-height: 1.5;
+  }
+}
+
+.terminal-welcome-buttons {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+}
+
+.terminal-settings-button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, rgba($accent-primary, 0.12) 0%, rgba($accent-secondary, 0.12) 100%);
+  border: 1px solid rgba($accent-primary, 0.25);
+  border-radius: $border-radius-large;
+  color: $text-primary;
+  padding: 16px 28px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all $transition-slow cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 
+    0 4px 16px rgba($accent-primary, 0.15),
+    inset 0 1px 0 rgba($text-secondary, 0.1);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent 0%, rgba($text-secondary, 0.1) 50%, transparent 100%);
+    transition: left $transition-slow;
+  }
+
+  &:hover {
+    background: linear-gradient(135deg, rgba($accent-primary, 0.2) 0%, rgba($accent-secondary, 0.2) 100%);
+    border-color: rgba($accent-primary, 0.4);
+    transform: translateY(-3px);
+    box-shadow: 
+      0 8px 32px rgba($accent-primary, 0.25),
+      inset 0 1px 0 rgba($text-secondary, 0.15);
+    color: $text-secondary;
+
+    &::before {
+      left: 100%;
+    }
+
+    svg {
+      transform: rotate(180deg);
+    }
+  }
+
+  &:active {
+    transform: translateY(-1px);
+    box-shadow: 
+      0 4px 16px rgba($accent-primary, 0.2),
+      inset 0 1px 0 rgba($text-secondary, 0.1);
+  }
+
+  svg {
+    transition: transform $transition-normal;
+  }
+}
+
+// Terminal Screen
+.terminal-screen {
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+  white-space: pre;
+  overflow: hidden;
+  font-variant-ligatures: none;
+  background: transparent;
+  position: relative;
+  transition: transform 0.1s ease-out;
+}
+
+// Smooth scroll animation for terminal content
+.terminal-row {
+  display: block;
+  height: 16px;
+  line-height: 16px;
+  white-space: nowrap;
+  min-height: 16px;
+  font-variant-ligatures: none;
+  overflow: hidden;
+  transition: opacity 0.15s ease-out;
+}
+
+// Scrolling state animations
+body.scrolling {
+  .terminal-row {
+    transition: opacity 0.05s ease-out;
+  }
+  
+  .terminal-char {
+    transition: none; // Disable character transitions during scroll for better performance
+  }
+}
+
+// Scroll indicator
+.terminal-scroll-indicator {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba($accent-primary, 0.95);
+  color: $text-secondary;
+  padding: 6px 12px;
+  border-radius: $border-radius-large;
+  font-size: 11px;
+  font-weight: 600;
+  z-index: 15;
+  animation: slideInFromRight 0.3s ease-out;
+  box-shadow: 
+    0 4px 12px rgba($accent-primary, 0.4),
+    0 2px 4px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba($accent-primary, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.2s ease-out;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  &::before {
+    content: '↑';
+    font-size: 13px;
+    animation: float 2s ease-in-out infinite;
+  }
+
+  &:hover {
+    background: rgba($accent-primary, 1);
+    transform: translateY(-1px);
+    box-shadow: 
+      0 6px 16px rgba($accent-primary, 0.5),
+      0 3px 6px rgba(0, 0, 0, 0.3);
+  }
+}
+
+// Animation for scroll indicator
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.terminal-char {
+  display: inline-block;
+  width: 8.4px;
+  height: 16px;
+  line-height: 16px;
+  text-align: left;
+  vertical-align: top;
+  font-variant-ligatures: none;
+  position: relative;
+
+  &.cursor {
+    background-color: $accent-primary;
+    color: $bg-primary;
+    animation: blink 1s infinite;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: $accent-primary;
+      z-index: 1;
+      animation: blink 1s infinite;
+    }
+  }
+
+  &.selected {
+    background-color: rgba($bg-secondary, 0.35);
+    color: $text-secondary;
+    position: relative;
+    transition: all 0.1s ease;
+  }
+}
+
+// Context Menu
+.terminal-context-menu {
+  background: linear-gradient(135deg, rgba($bg-secondary, 0.98) 0%, rgba($bg-primary, 0.98) 100%);
+  border: 1px solid rgba($accent-primary, 0.3);
+  box-shadow: 
+    0 8px 32px rgba($accent-primary, 0.2),
+    0 0 0 1px rgba($accent-primary, 0.1);
+  border-radius: $border-radius-large;
+  min-width: 180px;
+  padding: 8px 0;
+  z-index: 1000;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+
+  button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 12px 16px;
+    color: $text-primary;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all $transition-normal;
+
+    &:hover {
+      background: rgba($accent-primary, 0.15);
+      color: $text-secondary;
+    }
+  }
+}
+
+.context-menu-separator {
+  height: 1px;
+  background: rgba($accent-primary, 0.2);
+  margin: 8px 0;
+}
+
+// Terminal Options Modal
+.terminal-options-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba($bg-primary, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: $z-index-modal;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.terminal-options-modal {
+  background: linear-gradient(135deg, rgba($bg-secondary, 0.98) 0%, rgba($bg-primary, 0.98) 100%);
+  border: 1px solid rgba($accent-primary, 0.3);
+  border-radius: $border-radius-large;
+  width: 600px;
+  max-width: 90%;
+  max-height: 90vh;
+  box-shadow: 
+    0 20px 60px rgba($accent-primary, 0.3),
+    0 0 0 1px rgba($accent-primary, 0.1);
+  display: flex;
+  flex-direction: column;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.terminal-options-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba($accent-primary, 0.2);
+  background: linear-gradient(135deg, rgba($accent-primary, 0.08) 0%, rgba($accent-secondary, 0.08) 100%);
+
+  h2 {
+    margin: 0;
+    color: $text-primary;
+    font-size: 18px;
+    font-weight: 600;
+    background: linear-gradient(135deg, $accent-primary 0%, $accent-secondary 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+.terminal-options-modal-close {
+  background: none;
+  border: none;
+  color: $text-muted;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $border-radius;
+  transition: all $transition-normal;
+
+  &:hover {
+    color: $accent-primary;
+    background: rgba($accent-primary, 0.1);
+    transform: scale(1.1);
+  }
+}
+
+.terminal-options-modal-tabs {
+  display: flex;
+  border-bottom: 1px solid rgba($accent-primary, 0.2);
+}
+
+.terminal-options-tab {
+  padding: 16px 20px;
+  background: none;
+  border: none;
+  color: $text-muted;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  position: relative;
+  transition: all $transition-normal;
+
+  &.active {
+    color: $text-primary;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(135deg, $accent-primary 0%, $accent-secondary 100%);
+    }
+  }
+
+  &:hover {
+    color: $accent-primary;
+    background: rgba($accent-primary, 0.05);
+  }
+}
+
+.terminal-options-modal-content {
+  padding: 24px;
+  overflow-y: auto;
+  max-height: 60vh;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba($bg-secondary, 0.3);
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba($accent-primary, 0.3);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba($accent-primary, 0.5);
+    }
+  }
+}
+
+.terminal-options-section {
+  margin-bottom: 28px;
+
+  h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 16px;
+    color: $text-primary;
+    font-weight: 600;
+  }
+}
+
+.terminal-options-field {
+  margin-bottom: 20px;
+
+  label {
+    display: block;
+    margin-bottom: 8px;
+    color: $text-primary;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  input,
+  select {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba($bg-primary, 0.6);
+    border: 1px solid rgba($accent-primary, 0.3);
+    border-radius: $border-radius;
+    color: $text-primary;
+    font-size: 14px;
+    font-family: inherit;
+    transition: all $transition-normal;
+
+    &:focus {
+      outline: none;
+      border-color: $accent-primary;
+      box-shadow: 0 0 0 3px rgba($accent-primary, 0.15);
+      background: rgba($bg-primary, 0.8);
+    }
+
+    &::placeholder {
+      color: $text-muted;
+    }
+  }
+}
+
+.terminal-options-modal-footer {
+  padding: 20px 24px;
+  border-top: 1px solid rgba($accent-primary, 0.2);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  background: linear-gradient(135deg, rgba($accent-primary, 0.03) 0%, rgba($accent-secondary, 0.03) 100%);
+
+  button {
+    padding: 12px 20px;
+    border-radius: $border-radius;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all $transition-normal;
+  }
+}
+
+.terminal-options-cancel {
+  background-color: transparent;
+  border: 1px solid rgba($accent-primary, 0.3);
+  color: $text-muted;
+
+  &:hover {
+    background: rgba($accent-primary, 0.1);
+    color: $text-primary;
+    border-color: rgba($accent-primary, 0.5);
+  }
+}
+
+.terminal-options-save {
+  background: linear-gradient(135deg, $accent-primary 0%, $accent-secondary 100%);
+  border: 1px solid $accent-primary;
+  color: $text-secondary;
+  box-shadow: 0 4px 12px rgba($accent-primary, 0.3);
+
+  &:hover {
+    background: linear-gradient(135deg, darken($accent-primary, 5%) 0%, darken($accent-secondary, 5%) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba($accent-primary, 0.4);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// Control Icons
+.terminal-settings-icon {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba($bg-primary, 0.9);
+  border: 1px solid rgba($accent-primary, 0.2);
+  border-radius: $border-radius;
+  color: $text-muted;
+  cursor: pointer;
+  z-index: 10;
+  transition: all $transition-normal;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  &:hover {
+    background: rgba($accent-primary, 0.15);
+    color: $accent-primary;
+    transform: scale(1.1);
+    border-color: rgba($accent-primary, 0.4);
+  }
+}
+
+.terminal-controls-top {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+
+.terminal-ai-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba($accent-primary, 0.15) 0%, rgba($accent-secondary, 0.15) 100%);
+  border: 1px solid rgba($accent-primary, 0.3);
+  border-radius: $border-radius-large;
+  color: $accent-tertiary;
+  cursor: pointer;
+  transition: all $transition-normal;
+  box-shadow: 0 4px 12px rgba($accent-primary, 0.2);
+  font-size: 16px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  &:hover {
+    background: linear-gradient(135deg, rgba($accent-primary, 0.25) 0%, rgba($accent-secondary, 0.25) 100%);
+    color: $accent-primary;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba($accent-primary, 0.3);
+    border-color: rgba($accent-primary, 0.5);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 12px rgba($accent-primary, 0.2);
+  }
+}
+
+// AI Explanation Tooltip - Fixed top position with better visibility
+.ai-explanation-tooltip {
+  position: absolute;
+  z-index: 15;
+  pointer-events: none;
+  animation: ai-tooltip-fade-in 0.3s ease-out forwards;
+}
+
+.ai-explanation-content {
+  background: rgba($bg-secondary, 0.85);
+  border: 1px solid rgba($accent-primary, 0.6);
+  border-radius: 12px;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  max-width: 320px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+}
+
+.ai-explanation-icon {
+  font-size: 13px;
+  animation: ai-tooltip-icon-pulse 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 4px rgba($accent-primary, 0.6));
+  flex-shrink: 0;
+  opacity: 1;
+}
+
+.ai-explanation-text {
+  font-size: 12px;
+  color: $text-primary;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Subtle keyframe animations for glassmorphism tooltip
+@keyframes ai-tooltip-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ai-tooltip-icon-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+}
+
+// Keep only the global glow pulse for terminal container
+@keyframes ai-glow-pulse {
+  0%, 100% {
+    box-shadow: 
+      inset 0 0 0 1px rgba($accent-primary, 0.6),
+      0 0 20px rgba($accent-primary, 0.2),
+      0 0 40px rgba($accent-primary, 0.1);
+  }
+  50% {
+    box-shadow: 
+      inset 0 0 0 1px rgba($accent-primary, 0.8),
+      0 0 30px rgba($accent-primary, 0.3),
+      0 0 60px rgba($accent-primary, 0.2);
+  }
+}
+
+// Responsive Design
+@media (max-width: $breakpoint-mobile) {
+  .terminal-welcome {
+    padding: 24px 16px;
+
+    .terminal-logo {
+      margin-bottom: 24px;
+
+      img {
+        width: 60px;
+        height: 60px;
+      }
+    }
+
+    .terminal-welcome-content {
+      margin-bottom: 32px;
+
+      h2 {
+        font-size: 24px;
+      }
+
+      p {
+        font-size: 14px;
+      }
+    }
+
+    .terminal-settings-button {
+      padding: 12px 20px;
+      font-size: 13px;
+    }
+  }
+
+  .terminal-options-modal {
+    width: 95%;
+    margin: 16px;
+  }
+
+  .terminal-screen {
+    padding: 8px;
+  }
+} 

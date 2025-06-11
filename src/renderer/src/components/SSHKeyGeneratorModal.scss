@@ -1,0 +1,524 @@
+@import '../styles/variables';
+@import '../styles/mixins';
+
+.ssh-keygen-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  @include flex-center;
+  z-index: $z-index-modal-backdrop;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.ssh-keygen-modal {
+  background: rgba($bg-secondary, 0.95);
+  border: 1px solid rgba($border-light, 0.3);
+  border-radius: $border-radius-large;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  width: 95%;
+  max-width: 700px;
+  max-height: 90vh;
+  overflow: hidden;
+  @include flex-column;
+  animation: slideIn 0.3s ease-out;
+
+  @include mobile {
+    width: 98%;
+    max-height: 95vh;
+  }
+}
+
+.ssh-keygen-modal-header {
+  @include flex-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid rgba($border-color, 0.3);
+  background: rgba($bg-tertiary, 0.4);
+
+  .ssh-keygen-modal-title {
+    @include flex-center;
+    gap: 0.75rem;
+
+    .ssh-keygen-icon {
+      color: $accent-primary;
+      font-size: 1.25rem;
+    }
+
+    h3 {
+      color: $text-primary;
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0;
+    }
+  }
+
+  .ssh-keygen-modal-close-button {
+    @include control-button-base;
+    @include no-drag;
+    color: $text-muted;
+    font-size: 1.25rem;
+    padding: 0.5rem;
+    border-radius: $border-radius;
+    transition: all $transition-normal;
+
+    &:hover {
+      background: rgba($accent-red, 0.15);
+      color: $accent-red;
+      transform: scale(1.1);
+    }
+  }
+}
+
+.ssh-keygen-modal-content {
+  overflow-y: auto;
+  @include custom-scrollbar(6px, transparent, rgba($border-light, 0.5));
+  @include flex-column;
+  flex: 1;
+}
+
+// Form Styles
+.ssh-keygen-form {
+  padding: 1.5rem;
+
+  .form-section {
+    h4 {
+      color: $text-primary;
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0 0 1.5rem 0;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid rgba($accent-primary, 0.2);
+    }
+  }
+
+  .form-group {
+    margin-bottom: 1.25rem;
+
+    label {
+      display: block;
+      color: $text-primary;
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+
+    .form-input {
+      @include input-base;
+      width: 100%;
+      padding: 0.75rem;
+      background: rgba($bg-tertiary, 0.4);
+
+      &.readonly {
+        background: rgba($bg-tertiary, 0.2);
+        color: $text-muted;
+        cursor: not-allowed;
+      }
+
+      &:focus {
+        border-color: $accent-primary;
+        box-shadow: 0 0 0 2px rgba($accent-primary, 0.2);
+      }
+    }
+
+    .form-select {
+      @include input-base;
+      width: 100%;
+      padding: 0.75rem;
+      background: rgba($bg-tertiary, 0.4);
+      cursor: pointer;
+
+      &:focus {
+        border-color: $accent-primary;
+        box-shadow: 0 0 0 2px rgba($accent-primary, 0.2);
+      }
+    }
+
+    .form-help {
+      display: block;
+      color: $text-muted;
+      font-size: 0.8rem;
+      margin-top: 0.25rem;
+      line-height: 1.4;
+    }
+
+    .password-input-group {
+      position: relative;
+      @include flex-center;
+
+      .form-input {
+        padding-right: 3rem;
+      }
+
+      .password-toggle {
+        position: absolute;
+        right: 0.75rem;
+        background: none;
+        border: none;
+        color: $text-muted;
+        cursor: pointer;
+        padding: 0.25rem;
+        border-radius: $border-radius-small;
+        transition: color $transition-normal;
+
+        &:hover {
+          color: $accent-primary;
+        }
+      }
+    }
+
+    .file-input-group {
+      @include flex-center;
+      gap: 0.5rem;
+
+      .form-input {
+        flex: 1;
+      }
+
+      .browse-button {
+        @include control-button-base;
+        background: rgba($accent-primary, 0.1);
+        border: 1px solid rgba($accent-primary, 0.3);
+        color: $accent-primary;
+        padding: 0.75rem;
+        border-radius: $border-radius;
+        transition: all $transition-normal;
+
+        &:hover {
+          background: rgba($accent-primary, 0.2);
+          border-color: $accent-primary;
+        }
+      }
+    }
+  }
+
+  .form-actions {
+    margin-top: 2rem;
+    @include flex-center;
+
+    .generate-button {
+      @include flex-center;
+      gap: 0.5rem;
+      background: linear-gradient(135deg, $accent-primary, $accent-secondary);
+      color: white;
+      border: none;
+      padding: 0.875rem 2rem;
+      border-radius: $border-radius;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all $transition-normal;
+      box-shadow: 0 4px 12px rgba($accent-primary, 0.3);
+
+      &:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba($accent-primary, 0.4);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+    }
+  }
+}
+
+// Results Styles
+.ssh-keygen-results {
+  padding: 1.5rem;
+
+  .success-message {
+    @include flex-column;
+    align-items: center;
+    text-align: center;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, 
+      rgba($accent-green, 0.1) 0%, 
+      rgba($accent-green, 0.05) 100%
+    );
+    border: 1px solid rgba($accent-green, 0.2);
+    border-radius: $border-radius;
+    margin-bottom: 1.5rem;
+
+    .success-icon {
+      color: $accent-green;
+      font-size: 2rem;
+      margin-bottom: 0.75rem;
+    }
+
+    h4 {
+      color: $text-primary;
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem 0;
+    }
+
+    p {
+      color: $text-muted;
+      font-size: 0.9rem;
+      margin: 0;
+
+      code {
+        background: rgba($bg-tertiary, 0.6);
+        padding: 0.2rem 0.4rem;
+        border-radius: $border-radius-small;
+        font-family: $font-mono;
+        font-size: 0.85rem;
+      }
+    }
+
+    .file-paths {
+      margin-top: 1rem;
+      text-align: left;
+      
+      small {
+        color: $text-muted;
+        font-weight: 500;
+        display: block;
+        margin-bottom: 0.5rem;
+      }
+      
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        
+        li {
+          padding: 0.25rem 0;
+          
+          code {
+            color: $accent-primary;
+            background: rgba($accent-primary, 0.1);
+            font-size: 0.8rem;
+          }
+        }
+      }
+    }
+  }
+
+  .error-message {
+    @include flex-column;
+    align-items: center;
+    text-align: center;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, 
+      rgba($accent-red, 0.1) 0%, 
+      rgba($accent-red, 0.05) 100%
+    );
+    border: 1px solid rgba($accent-red, 0.2);
+    border-radius: $border-radius;
+
+    .error-icon {
+      color: $accent-red;
+      font-size: 2rem;
+      margin-bottom: 0.75rem;
+    }
+
+    h4 {
+      color: $text-primary;
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem 0;
+    }
+
+    p {
+      color: $text-muted;
+      font-size: 0.9rem;
+      margin: 0 0 1rem 0;
+    }
+  }
+
+  .key-info {
+    padding: 1rem;
+    background: rgba($bg-tertiary, 0.3);
+    border-radius: $border-radius;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba($border-color, 0.2);
+
+    strong {
+      color: $text-primary;
+      font-weight: 600;
+    }
+
+    code {
+      color: $accent-primary;
+      font-family: $font-mono;
+      font-size: 0.85rem;
+      background: rgba($accent-primary, 0.1);
+      padding: 0.2rem 0.4rem;
+      border-radius: $border-radius-small;
+      margin-left: 0.5rem;
+    }
+  }
+
+  .key-section {
+    margin-bottom: 1.5rem;
+    background: rgba($bg-tertiary, 0.2);
+    border: 1px solid rgba($border-color, 0.2);
+    border-radius: $border-radius;
+    padding: 1rem;
+
+    .key-header {
+      @include flex-between;
+      margin-bottom: 1rem;
+
+      h5 {
+        color: $text-primary;
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 0;
+      }
+
+      .key-actions {
+        @include flex-center;
+        gap: 0.5rem;
+
+        .action-button,
+        .visibility-toggle {
+          @include control-button-base;
+          color: $text-muted;
+          padding: 0.5rem;
+          border: 1px solid rgba($border-color, 0.3);
+          border-radius: $border-radius-small;
+          transition: all $transition-normal;
+
+          &:hover {
+            color: $accent-primary;
+            border-color: $accent-primary;
+            background: rgba($accent-primary, 0.1);
+          }
+        }
+      }
+    }
+
+    .key-display {
+      width: 100%;
+      background: rgba($bg-primary, 0.4);
+      border: 1px solid rgba($border-color, 0.3);
+      border-radius: $border-radius-small;
+      color: $text-primary;
+      font-family: $font-mono;
+      font-size: 0.8rem;
+      line-height: 1.4;
+      padding: 0.75rem;
+      resize: none;
+      @include custom-scrollbar(4px, transparent, rgba($border-light, 0.3));
+
+      &:focus {
+        outline: none;
+        border-color: $accent-primary;
+        box-shadow: 0 0 0 1px rgba($accent-primary, 0.3);
+      }
+
+      &.private {
+        border-color: rgba($accent-orange, 0.4);
+        background: rgba($accent-orange, 0.05);
+      }
+    }
+
+    .key-hidden {
+      @include flex-center;
+      gap: 0.75rem;
+      padding: 2rem;
+      background: rgba($bg-primary, 0.4);
+      border: 1px solid rgba($border-color, 0.3);
+      border-radius: $border-radius-small;
+      color: $text-muted;
+      font-style: italic;
+
+      svg {
+        color: $accent-orange;
+        font-size: 1.25rem;
+      }
+    }
+
+    .key-help {
+      display: block;
+      color: $text-muted;
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+      line-height: 1.4;
+
+      &.warning {
+        color: $accent-orange;
+        font-weight: 500;
+      }
+    }
+  }
+
+  .results-actions {
+    @include flex-between;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba($border-color, 0.2);
+
+    @include mobile {
+      flex-direction: column;
+    }
+
+    .primary-button,
+    .secondary-button {
+      padding: 0.75rem 1.5rem;
+      border-radius: $border-radius;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all $transition-normal;
+      flex: 1;
+
+      @include mobile {
+        flex: none;
+        width: 100%;
+      }
+    }
+
+    .primary-button {
+      background: linear-gradient(135deg, $accent-primary, $accent-secondary);
+      color: white;
+      border: none;
+      box-shadow: 0 2px 8px rgba($accent-primary, 0.3);
+
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba($accent-primary, 0.4);
+      }
+    }
+
+    .secondary-button {
+      background: transparent;
+      color: $text-muted;
+      border: 1px solid rgba($border-color, 0.4);
+
+      &:hover {
+        color: $text-primary;
+        border-color: $accent-primary;
+        background: rgba($accent-primary, 0.1);
+      }
+    }
+  }
+}
+
+// Animations
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { 
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+} 

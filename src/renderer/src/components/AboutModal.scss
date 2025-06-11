@@ -1,0 +1,404 @@
+@import '../styles/variables';
+@import '../styles/mixins';
+
+.about-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  @include flex-center;
+  z-index: $z-index-modal-backdrop;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.about-modal {
+  background: rgba($bg-secondary, 0.95);
+  border: 1px solid rgba($border-light, 0.3);
+  border-radius: $border-radius-large;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow: hidden;
+  @include flex-column;
+  animation: slideIn 0.3s ease-out;
+  position: relative;
+
+  @include mobile {
+    width: 95%;
+    max-height: 95vh;
+  }
+}
+
+.about-modal-header {
+  @include flex-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid rgba($border-color, 0.3);
+  background: rgba($bg-tertiary, 0.4);
+
+  .about-modal-title {
+    @include flex-center;
+    gap: 0.75rem;
+
+    .about-icon {
+      color: $accent-primary;
+      font-size: 1.25rem;
+    }
+
+    h3 {
+      color: $text-primary;
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0;
+    }
+  }
+
+  .about-modal-close-button {
+    @include control-button-base;
+    @include no-drag;
+    color: $text-muted;
+    font-size: 1.25rem;
+    padding: 0.5rem;
+    border-radius: $border-radius;
+    transition: all $transition-normal;
+
+    &:hover {
+      background: rgba($accent-red, 0.15);
+      color: $accent-red;
+      transform: scale(1.1);
+    }
+  }
+}
+
+.about-modal-content {
+  padding: 0;
+  overflow-y: auto;
+  @include custom-scrollbar(6px, transparent, rgba($border-light, 0.5));
+  @include flex-column;
+  gap: 0;
+
+  @include mobile {
+    padding: 0;
+  }
+}
+
+.about-section {
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba($border-color, 0.15);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  @include mobile {
+    padding: 1rem;
+  }
+
+  h4 {
+    @include flex-center;
+    gap: 0.5rem;
+    color: $text-primary;
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 1rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba($accent-primary, 0.2);
+
+    .section-icon {
+      color: $accent-primary;
+      font-size: 1rem;
+    }
+  }
+}
+
+// App Info Section
+.app-info {
+  @include flex-center;
+  gap: 1.5rem;
+  text-align: center;
+  background: linear-gradient(135deg, 
+    rgba($accent-primary, 0.1) 0%, 
+    rgba($accent-secondary, 0.05) 100%
+  );
+  position: relative;
+
+  @include mobile {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .app-logo {
+    position: relative;
+
+    .logo-container {
+      @include flex-center;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, $accent-primary, $accent-secondary);
+      position: relative;
+      box-shadow: 0 8px 20px rgba($accent-primary, 0.3);
+
+      .app-logo-icon {
+        color: white;
+        font-size: 2rem;
+        z-index: 2;
+      }
+
+      .logo-gradient {
+        position: absolute;
+        top: -2px;
+        left: -2px;
+        right: -2px;
+        bottom: -2px;
+        background: linear-gradient(45deg, $accent-primary, $accent-secondary, $accent-tertiary);
+        border-radius: 50%;
+        z-index: 1;
+        animation: rotate 3s linear infinite;
+      }
+    }
+
+    @include mobile {
+      .logo-container {
+        width: 60px;
+        height: 60px;
+
+        .app-logo-icon {
+          font-size: 1.5rem;
+        }
+      }
+    }
+  }
+
+  .app-details {
+    @include flex-column;
+    gap: 0.5rem;
+
+    h2 {
+      color: $text-secondary;
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin: 0;
+      background: linear-gradient(135deg, $accent-primary, $accent-secondary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+
+      @include mobile {
+        font-size: 1.5rem;
+      }
+    }
+
+         .app-version {
+       margin: 0.5rem 0;
+
+       .version {
+         color: $text-primary;
+         font-size: 1rem;
+         font-weight: 500;
+         background: rgba($accent-primary, 0.1);
+         padding: 0.25rem 0.75rem;
+         border-radius: $border-radius;
+         display: inline-block;
+       }
+     }
+
+    .app-description {
+      color: $text-muted;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      max-width: 400px;
+      margin: 0.5rem 0 0 0;
+    }
+  }
+}
+
+// Features Section
+.features {
+  .features-grid {
+    display: grid;
+    gap: 0.75rem;
+
+    .feature-item {
+      @include flex-center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      background: rgba($bg-tertiary, 0.3);
+      border: 1px solid rgba($border-color, 0.2);
+      border-radius: $border-radius;
+      transition: all $transition-normal;
+      align-items: flex-start;
+
+      &:hover {
+        background: rgba($accent-primary, 0.1);
+        border-color: rgba($accent-primary, 0.3);
+        transform: translateY(-1px);
+      }
+
+      .feature-bullet {
+        color: $accent-primary;
+        font-weight: bold;
+        font-size: 1rem;
+        flex-shrink: 0;
+      }
+
+      span:last-child {
+        color: $text-primary;
+        font-size: 0.9rem;
+        line-height: 1.4;
+      }
+    }
+  }
+}
+
+// System Info Section
+.system-info {
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+
+    @include mobile {
+      grid-template-columns: 1fr;
+    }
+
+    .info-item {
+      @include flex-between;
+      padding: 0.75rem;
+      background: rgba($bg-tertiary, 0.3);
+      border: 1px solid rgba($border-color, 0.2);
+      border-radius: $border-radius;
+
+      .info-label {
+        color: $text-muted;
+        font-size: 0.85rem;
+        font-weight: 500;
+      }
+
+      .info-value {
+        color: $text-primary;
+        font-family: $font-mono;
+        font-size: 0.85rem;
+        font-weight: 600;
+        background: rgba($accent-primary, 0.1);
+        padding: 0.25rem 0.5rem;
+        border-radius: $border-radius-small;
+      }
+    }
+  }
+}
+
+// Dependencies Section
+.dependencies {
+  .dependencies-grid {
+    display: grid;
+    gap: 0.75rem;
+
+    .dependency-item {
+      padding: 1rem;
+      background: rgba($bg-tertiary, 0.3);
+      border: 1px solid rgba($border-color, 0.2);
+      border-radius: $border-radius;
+      transition: all $transition-normal;
+
+      &:hover {
+        background: rgba($accent-primary, 0.05);
+        border-color: rgba($accent-primary, 0.2);
+      }
+
+      .dependency-header {
+        @include flex-between;
+        margin-bottom: 0.5rem;
+
+        .dependency-name {
+          color: $text-secondary;
+          font-weight: 600;
+          font-size: 0.95rem;
+        }
+
+        .dependency-version {
+          color: $accent-primary;
+          font-family: $font-mono;
+          font-size: 0.8rem;
+          background: rgba($accent-primary, 0.15);
+          padding: 0.25rem 0.5rem;
+          border-radius: $border-radius-small;
+        }
+      }
+
+      .dependency-description {
+        color: $text-muted;
+        font-size: 0.85rem;
+        line-height: 1.4;
+      }
+    }
+  }
+}
+
+// Footer Links Section
+.footer-links {
+  background: rgba($bg-tertiary, 0.2);
+  border-top: 1px solid rgba($border-color, 0.2);
+
+  .links-grid {
+    @include flex-center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+
+    @include mobile {
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .footer-link {
+      color: $text-muted;
+      font-size: 0.85rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: color $transition-normal;
+      text-decoration: none;
+
+      &:hover {
+        color: $accent-primary;
+      }
+
+      &:first-child {
+        color: $accent-primary;
+        font-weight: 500;
+
+        &:hover {
+          color: $accent-secondary;
+        }
+      }
+    }
+  }
+}
+
+// Animations
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { 
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+} 

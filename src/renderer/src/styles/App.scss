@@ -1,0 +1,577 @@
+@import 'variables';
+@import 'mixins';
+
+// Mixins
+@mixin no-drag {
+  -webkit-app-region: no-drag;
+}
+
+@mixin drag {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+@mixin button-hover($bg-color) {
+  transition: background-color 0.2s ease;
+  
+  &:hover {
+    background: $bg-color;
+  }
+}
+
+@mixin control-button-base {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// Global Styles
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: $font-mono;
+  background: $bg-primary;
+  color: $text-primary;
+  overflow: hidden;
+  user-select: none;
+}
+
+// Terminal App Container
+.terminal-app {
+  width: 100vw;
+  height: 100vh;
+  @include flex-column;
+  background: $bg-primary;
+  position: relative;
+  outline: none;
+}
+
+// Terminal Header
+.terminal-header {
+  height: $header-height;
+  background: $bg-secondary;
+  border-bottom: 1px solid $border-color;
+  @include flex-between;
+  padding: 0 8px;
+  position: relative;
+  z-index: $z-index-header;
+  @include drag;
+}
+
+// Sidebar Toggle Button
+.sidebar-toggle {
+  @include control-button-base;
+  @include no-drag;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-small;
+  color: $text-primary;
+  padding: 4px 6px;
+  margin-right: 8px;
+  @include button-hover($border-color);
+
+  &.open {
+    background: $accent-primary;
+    border-color: $accent-primary;
+    color: $text-secondary;
+  }
+}
+
+// macOS Controls
+.terminal-controls {
+  &.macos {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    @include no-drag;
+
+    .control-button {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      transition: opacity $transition-normal;
+
+      &:hover {
+        opacity: 0.8;
+      }
+
+      &.close {
+        background: #ff5f57;
+      }
+
+      &.minimize {
+        background: #ffbd2e;
+      }
+
+      &.maximize {
+        background: #28ca42;
+      }
+    }
+  }
+
+  // Windows/Linux Controls
+  &.windows {
+    display: flex;
+    @include no-drag;
+
+    .control-button {
+      @include control-button-base;
+      width: 46px;
+      height: $header-height;
+      color: $text-primary;
+      @include button-hover($border-color);
+
+      &.close:hover {
+        background: $accent-red;
+        color: $text-secondary;
+      }
+    }
+  }
+}
+
+// Terminal Drag Area
+.terminal-drag-area {
+  flex: 1;
+  @include flex-between;
+  @include drag;
+}
+
+// Terminal Title
+.terminal-title {
+  font-size: 13px;
+  font-weight: 400;
+  color: $text-primary;
+  text-align: center;
+  flex: 1;
+  @include drag;
+}
+
+// Terminal Status
+.terminal-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  @include no-drag;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: $text-muted;
+  transition: background-color $transition-slow;
+
+  &.connected {
+    background: $accent-green;
+    box-shadow: 0 0 4px rgba(16, 185, 129, 0.5);
+  }
+
+  &.disconnected {
+    background: $text-muted;
+  }
+}
+
+// File Explorer Toggle Button
+.file-explorer-toggle {
+  @include control-button-base;
+  @include no-drag;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-small;
+  color: $text-primary;
+  padding: 4px 6px;
+  margin-right: 8px;
+  @include button-hover($border-color);
+
+  &.open {
+    background: $accent-primary;
+    border-color: $accent-primary;
+    color: $text-secondary;
+  }
+
+  &:hover {
+    background: rgba($accent-primary, 0.1);
+    border-color: rgba($accent-primary, 0.3);
+    color: $accent-primary;
+  }
+
+  &.open:hover {
+    background: $accent-secondary;
+    border-color: $accent-secondary;
+    color: $text-secondary;
+  }
+}
+
+// Terminal Body
+.terminal-body {
+  flex: 1;
+  background: $bg-primary;
+  overflow-y: auto;
+  overflow-x: hidden;
+  font-family: $font-mono;
+  font-size: 14px;
+  line-height: 1.4;
+  position: relative;
+  @include custom-scrollbar();
+}
+
+.terminal-content {
+  min-height: 100%;
+  @include flex-column;
+}
+
+// Terminal Lines
+.terminal-line {
+  margin-bottom: 2px;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+
+  &.input {
+    color: $text-secondary;
+  }
+
+  &.output {
+    color: $text-primary;
+  }
+
+  &.error {
+    color: $text-error;
+  }
+
+  &.prompt {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+}
+
+.prompt-line {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.prompt-text {
+  color: $accent-primary;
+  font-weight: 500;
+  white-space: nowrap;
+  margin-right: 4px;
+}
+
+// Terminal Input
+.terminal-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: $text-secondary;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  caret-color: $text-secondary;
+  min-width: 0;
+  pointer-events: auto;
+
+  &::placeholder {
+    color: $text-muted;
+    opacity: 0.7;
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  @include text-selection();
+}
+
+// Global text selection
+::selection {
+  background: $selection-bg;
+  color: $text-secondary;
+}
+
+::-moz-selection {
+  background: $selection-bg;
+  color: $text-secondary;
+}
+
+// Responsive adjustments
+@include mobile {
+  .terminal-body {
+    padding: 12px;
+    font-size: 13px;
+  }
+  
+  .terminal-header {
+    padding: 0 4px;
+    height: $header-height-mobile;
+  }
+  
+  .terminal-title {
+    font-size: 12px;
+  }
+  
+  .sidebar-toggle {
+    padding: 3px 4px;
+  }
+
+  .terminal-controls.windows .control-button {
+    width: 42px;
+    height: $header-height-mobile;
+  }
+}
+
+// Legacy styles (keeping for compatibility)
+.app {
+  min-height: 100vh;
+  background: linear-gradient(135deg, $brand-gradient-start 0%, $brand-gradient-end 100%);
+  color: #333;
+  font-family: $font-sans;
+}
+
+.app-header {
+  text-align: center;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+
+  h1 {
+    margin: 0;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.subtitle {
+  margin: 0.5rem 0 0 0;
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 300;
+}
+
+.app-main {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 2rem;
+}
+
+.info-card,
+.actions-card,
+.welcome-card {
+  background: white;
+  border-radius: $border-radius-large;
+  padding: 1.5rem;
+  box-shadow: $shadow-heavy;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: transform $transition-normal, box-shadow $transition-normal;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  }
+
+  h2 {
+    margin: 0 0 1rem 0;
+    color: #333;
+    font-size: 1.3rem;
+    font-weight: 600;
+  }
+}
+
+.info-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.info-item {
+  @include flex-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #eee;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.label {
+  font-weight: 500;
+  color: #666;
+}
+
+.value {
+  font-weight: 600;
+  color: #333;
+  font-family: $font-mono;
+  background: #f8f9fa;
+  padding: 0.25rem 0.5rem;
+  border-radius: $border-radius;
+  font-size: 0.9rem;
+}
+
+.primary-button {
+  background: linear-gradient(135deg, $brand-gradient-start 0%, $brand-gradient-end 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: $border-radius-large;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all $transition-normal;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.welcome-card {
+  p {
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  li {
+    padding: 0.5rem 0;
+    color: #333;
+    font-weight: 500;
+  }
+}
+
+// Additional responsive styles
+@include mobile {
+  .app-main {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+  }
+  
+  .app-header {
+    padding: 1.5rem;
+
+    h1 {
+      font-size: 2rem;
+    }
+  }
+
+  .terminal-body {
+    padding: 6px;
+  }
+  
+  .terminal-content {
+    padding: 6px;
+  }
+  
+  .terminal-line,
+  .terminal-input {
+    font-size: 12px;
+  }
+  
+  .terminal-title {
+    font-size: 11px;
+    padding: 0 10px;
+  }
+  
+  .terminal-drag-area .terminal-title {
+    padding: 0;
+  }
+}
+
+// Menu styles
+.menu-container {
+  position: relative;
+  margin-left: 10px;
+}
+
+.menu-toggle {
+  background: none;
+  border: none;
+  color: #ccc;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  @include no-drag;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  &.active {
+    background-color: rgba(255, 255, 255, 0.15);
+  }
+}
+
+.menu-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: rgba($bg-secondary, 0.98);
+  border: 1px solid rgba($border-color, 0.3);
+  border-radius: $border-radius-large;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  min-width: 160px;
+  z-index: 100;
+  overflow: hidden;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    padding: 12px 16px;
+    border: none;
+    background: none;
+    color: $text-primary;
+    cursor: pointer;
+    transition: all $transition-normal;
+    font-size: 14px;
+    font-weight: 500;
+
+    &:hover {
+      background: rgba($accent-primary, 0.15);
+      color: $accent-primary;
+    }
+
+    &:active {
+      background: rgba($accent-primary, 0.2);
+      transform: scale(0.98);
+    }
+
+    &:not(:last-child) {
+      border-bottom: 1px solid rgba($border-color, 0.15);
+    }
+  }
+} 

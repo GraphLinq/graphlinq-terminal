@@ -1,0 +1,927 @@
+@import '../styles/variables';
+
+// Animations
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+// Sidebar
+.server-sidebar {
+  position: fixed;
+  top: $header-height;
+  left: calc(-1 * var(--sidebar-width, #{$sidebar-width}));
+  width: var(--sidebar-width, #{$sidebar-width});
+  min-width: $sidebar-min-width;
+  max-width: $sidebar-max-width;
+  height: calc(100vh - #{$header-height});
+  background: rgba($bg-primary, 0.98);
+  border-right: 1px solid rgba($accent-primary, 0.2);
+  z-index: $z-index-fixed;
+  transition: left $transition-slow ease-out;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+
+  &.open {
+    left: 0;
+    animation: slideIn 0.3s ease-out;
+  }
+
+  &.resizing {
+    transition: none;
+    user-select: none;
+    
+    .resize-handle {
+      background: $accent-primary;
+      
+      &::before {
+        background: rgba($text-secondary, 0.8);
+        height: 80px;
+      }
+    }
+  }
+  
+  &:hover .resize-handle::before {
+    opacity: 1;
+  }
+}
+
+// Resize Handle
+.resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100%;
+  background: transparent;
+  cursor: col-resize;
+  z-index: 10;
+  transition: background $transition-normal;
+
+  &:hover {
+    background: rgba($accent-primary, 0.5);
+  }
+
+  &:active {
+    background: $accent-primary;
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 2px;
+    height: 40px;
+    background: rgba($accent-primary, 0.3);
+    border-radius: 1px;
+    transition: all $transition-normal;
+    opacity: 0.6;
+  }
+
+  &:hover::before {
+    background: rgba($accent-primary, 0.8);
+    height: 60px;
+  }
+}
+
+// Sidebar Header
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba($accent-primary, 0.15);
+  background: rgba($bg-secondary, 0.8);
+  min-height: 56px;
+
+  h3 {
+    margin: 0;
+    color: $text-primary;
+    font-size: 16px;
+    font-weight: 600;
+    background: linear-gradient(135deg, $accent-primary 0%, $accent-secondary 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+.add-server-btn {
+  background: rgba($accent-primary, 0.1);
+  border: 1px solid rgba($accent-primary, 0.3);
+  border-radius: $border-radius;
+  color: $accent-primary;
+  padding: 8px;
+  cursor: pointer;
+  transition: all $transition-normal;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+
+  &:hover {
+    background: $accent-primary;
+    border-color: $accent-primary;
+    color: $text-secondary;
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba($accent-primary, 0.3);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+// Add Server Form
+.add-server-form {
+  max-height: calc(100vh - 180px);
+  overflow-y: auto;
+  background: rgba($bg-secondary, 0.95);
+  border-bottom: 1px solid rgba($accent-primary, 0.1);
+  margin: 8px;
+  border-radius: $border-radius-large;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.form-section {
+  padding: 20px;
+  border-bottom: 1px solid rgba($accent-primary, 0.08);
+
+  &:last-of-type {
+    border-bottom: none;
+  }
+
+  h4 {
+    margin: 0 0 16px 0;
+    color: $text-primary;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    opacity: 0.8;
+  }
+}
+
+.form-group {
+  margin-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  label {
+    display: block;
+    margin-bottom: 6px;
+    color: $text-primary;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  input,
+  select,
+  textarea {
+    width: 100%;
+    padding: 10px 14px;
+    background: rgba($bg-primary, 0.8);
+    border: 1px solid rgba($accent-primary, 0.2);
+    border-radius: $border-radius;
+    color: $text-primary;
+    font-size: 14px;
+    box-sizing: border-box;
+    font-family: inherit;
+    transition: all $transition-normal;
+
+    &:focus {
+      outline: none;
+      border-color: $accent-primary;
+      background: rgba($bg-primary, 0.95);
+      box-shadow: 0 0 0 3px rgba($accent-primary, 0.1);
+    }
+
+    &::placeholder {
+      color: $text-muted;
+      opacity: 0.7;
+    }
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 70px;
+    line-height: 1.4;
+  }
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+
+  .form-group {
+    flex: 1;
+  }
+}
+
+// Auth Tabs
+.auth-tabs {
+  display: flex;
+  margin-bottom: 16px;
+  border: 1px solid rgba($accent-primary, 0.2);
+  border-radius: $border-radius;
+  overflow: hidden;
+  background: rgba($bg-primary, 0.5);
+}
+
+.auth-tab {
+  flex: 1;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  color: $text-muted;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &:not(:last-child) {
+    border-right: 1px solid rgba($accent-primary, 0.2);
+  }
+
+  &:hover {
+    background: rgba($accent-primary, 0.1);
+    color: $text-primary;
+  }
+
+  &.active {
+    background: $accent-primary;
+    color: $text-secondary;
+    font-weight: 600;
+  }
+}
+
+// Form Actions
+.form-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  background: rgba($accent-primary, 0.03);
+  border-radius: 0 0 $border-radius-large $border-radius-large;
+}
+
+.btn-save,
+.btn-secondary,
+.btn-cancel {
+  padding: 12px 16px;
+  border: 1px solid transparent;
+  border-radius: $border-radius;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all $transition-normal;
+  text-align: center;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-save {
+  background: linear-gradient(135deg, $accent-primary 0%, $accent-secondary 100%);
+  color: $text-secondary;
+  box-shadow: 0 2px 8px rgba($accent-primary, 0.25);
+
+  &:hover {
+    background: linear-gradient(135deg, darken($accent-primary, 5%) 0%, darken($accent-secondary, 5%) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba($accent-primary, 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, $accent-green 0%, darken($accent-green, 5%) 100%);
+  color: $text-secondary;
+  box-shadow: 0 2px 8px rgba($accent-green, 0.25);
+
+  &:hover {
+    background: linear-gradient(135deg, darken($accent-green, 5%) 0%, darken($accent-green, 10%) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba($accent-green, 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.btn-cancel {
+  background: rgba($bg-primary, 0.8);
+  color: $text-muted;
+  border-color: rgba($accent-primary, 0.2);
+
+  &:hover {
+    background: rgba($accent-red, 0.1);
+    color: $accent-red;
+    border-color: rgba($accent-red, 0.3);
+  }
+}
+
+// Server List
+.server-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.server-item {
+  display: flex;
+  flex-direction: column;
+  padding: 18px 16px 12px;
+  margin-bottom: 12px;
+  border-radius: $border-radius-large;
+  cursor: pointer;
+  transition: all $transition-normal;
+  position: relative;
+  background: rgba($bg-secondary, 0.4);
+  border: 1px solid transparent;
+
+  &:hover {
+    background: rgba($accent-primary, 0.08);
+    border-color: rgba($accent-primary, 0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba($accent-primary, 0.1);
+  }
+
+  &.active {
+    background: linear-gradient(135deg, rgba($accent-primary, 0.15) 0%, rgba($accent-secondary, 0.1) 100%);
+    border-color: $accent-primary;
+    box-shadow: 0 4px 16px rgba($accent-primary, 0.2);
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 60%;
+      background: linear-gradient(135deg, $accent-primary 0%, $accent-secondary 100%);
+      border-radius: 0 2px 2px 0;
+    }
+  }
+
+  &.connecting {
+    background: rgba($accent-orange, 0.1);
+    border-color: rgba($accent-orange, 0.3);
+  }
+}
+
+.server-content {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.server-info {
+  flex: 1;
+  min-width: 0;
+  margin-right: 12px;
+}
+
+.server-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.server-name {
+  color: $text-primary;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  flex: 1;
+  word-wrap: break-word;
+  hyphens: auto;
+}
+
+.server-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+}
+
+.server-category {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, $accent-primary 0%, $accent-secondary 100%);
+  color: $text-secondary;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.auth-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  
+  &.password {
+    background: rgba($accent-orange, 0.2);
+    color: $accent-orange;
+    border: 1px solid rgba($accent-orange, 0.3);
+  }
+  
+  &.privateKey {
+    background: rgba($accent-green, 0.2);
+    color: $accent-green;
+    border: 1px solid rgba($accent-green, 0.3);
+  }
+  
+  svg {
+    opacity: 0.8;
+  }
+}
+
+.server-connection {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-family: $font-mono;
+  font-size: 13px;
+  
+  .connection-icon {
+    color: $text-muted;
+    opacity: 0.7;
+    flex-shrink: 0;
+  }
+  
+  .connection-text {
+    color: $text-primary;
+    font-weight: 500;
+    flex: 1;
+    word-wrap: break-word;
+  }
+  
+  .port-badge {
+    background: rgba($accent-blue, 0.2);
+    color: $accent-blue;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid rgba($accent-blue, 0.3);
+  }
+}
+
+.server-description {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: $text-muted;
+  font-size: 11px;
+  line-height: 1.4;
+  margin-bottom: 10px;
+  padding: 6px 8px;
+  background: rgba($bg-tertiary, 0.3);
+  border-radius: $border-radius;
+  border-left: 2px solid rgba($accent-primary, 0.3);
+  
+  .description-icon {
+    color: $accent-primary;
+    opacity: 0.6;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+}
+
+.server-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid rgba($accent-primary, 0.1);
+  
+  .status-info {
+    display: flex;
+    align-items: center;
+    
+    .status-text {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      
+      &.connected {
+        color: $accent-green;
+      }
+      
+      &.connecting {
+        color: $accent-orange;
+      }
+      
+      &.disconnected {
+        color: $text-muted;
+        opacity: 0.7;
+      }
+    }
+  }
+  
+  .auth-info {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    
+    .auth-label {
+      color: $text-muted;
+      opacity: 0.7;
+    }
+    
+    .auth-type {
+      font-weight: 500;
+      
+      &.password {
+        color: $accent-orange;
+      }
+      
+      &.privateKey {
+        color: $accent-green;
+      }
+    }
+  }
+}
+
+.server-status {
+  margin: 0 0 0 12px;
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: $text-muted;
+  transition: all $transition-normal;
+
+  &.connected {
+    background: $accent-green;
+    box-shadow: 0 0 8px rgba($accent-green, 0.6);
+  }
+
+  &.connecting {
+    background: $accent-orange;
+    animation: pulse 1.5s infinite;
+  }
+
+  &.disconnected {
+    background: rgba($text-muted, 0.5);
+  }
+}
+
+.server-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  padding-top: 12px;
+  border-top: 1px solid rgba($accent-primary, 0.08);
+}
+
+.btn-connect,
+.btn-disconnect,
+.btn-delete {
+  background: rgba($bg-primary, 0.8);
+  border: 1px solid rgba($accent-primary, 0.2);
+  color: $text-muted;
+  padding: 6px 12px;
+  cursor: pointer;
+  border-radius: $border-radius;
+  transition: all $transition-normal;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  min-height: 30px;
+  white-space: nowrap;
+
+  span {
+    line-height: 1;
+  }
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.btn-connect {
+  &:hover {
+    background: linear-gradient(135deg, $accent-primary 0%, $accent-secondary 100%);
+    color: $text-secondary;
+    box-shadow: 0 4px 12px rgba($accent-primary, 0.4);
+  }
+}
+
+.btn-disconnect {
+  &:hover {
+    background: linear-gradient(135deg, $accent-red 0%, darken($accent-red, 10%) 100%);
+    color: $text-secondary;
+    box-shadow: 0 4px 12px rgba($accent-red, 0.4);
+  }
+}
+
+.btn-delete {
+  &:hover {
+    background: linear-gradient(135deg, $accent-red 0%, darken($accent-red, 10%) 100%);
+    color: $text-secondary;
+    box-shadow: 0 4px 12px rgba($accent-red, 0.4);
+  }
+}
+
+.connecting-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba($accent-orange, 0.1);
+  border: 1px solid rgba($accent-orange, 0.3);
+  border-radius: $border-radius;
+  color: $accent-orange;
+  font-size: 11px;
+  font-weight: 500;
+  min-height: 30px;
+  white-space: nowrap;
+
+  .connecting-spinner {
+    flex-shrink: 0;
+    
+    svg {
+      display: block;
+    }
+  }
+
+  span {
+    line-height: 1;
+  }
+}
+
+// Empty State
+.empty-state {
+  padding: 3rem 2rem;
+  text-align: center;
+  color: $text-muted;
+
+  p {
+    margin-bottom: 1.5rem;
+    font-size: 14px;
+    opacity: 0.8;
+  }
+
+  button {
+    background: linear-gradient(135deg, $accent-primary 0%, $accent-secondary 100%);
+    color: $text-secondary;
+    border: none;
+    padding: 12px 24px;
+    border-radius: $border-radius;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all $transition-normal;
+    box-shadow: 0 4px 12px rgba($accent-primary, 0.3);
+
+    &:hover {
+      background: linear-gradient(135deg, darken($accent-primary, 5%) 0%, darken($accent-secondary, 5%) 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba($accent-primary, 0.4);
+    }
+  }
+}
+
+.loading-state {
+  padding: 3rem 2rem;
+  text-align: center;
+  color: $text-muted;
+
+  p {
+    font-size: 14px;
+    margin: 0;
+    opacity: 0.8;
+  }
+}
+
+// Sidebar Overlay
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba($bg-primary, 0.6);
+  z-index: 1;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+// Delete Confirmation Modal
+.delete-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba($bg-primary, 0.8);
+  z-index: $z-index-modal;
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.delete-confirm-modal {
+  background: linear-gradient(135deg, rgba($bg-secondary, 0.95) 0%, rgba($bg-primary, 0.95) 100%);
+  border: 1px solid rgba($accent-primary, 0.3);
+  border-radius: $border-radius-large;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+  width: 90%;
+  animation: modalSlideIn 0.3s ease-out;
+  backdrop-filter: blur(10px);
+  
+  .modal-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid rgba($accent-primary, 0.1);
+    
+    .warning-icon {
+      color: $accent-orange;
+      flex-shrink: 0;
+    }
+    
+    h3 {
+      margin: 0;
+      color: $text-primary;
+      font-size: 18px;
+      font-weight: 600;
+    }
+  }
+  
+  .modal-content {
+    padding: 20px 24px;
+    
+    p {
+      margin: 0 0 12px 0;
+      color: $text-primary;
+      font-size: 14px;
+      line-height: 1.5;
+      
+      strong {
+        color: $accent-primary;
+        font-weight: 600;
+      }
+    }
+    
+    .warning-text {
+      color: $text-muted;
+      font-size: 13px;
+      font-style: italic;
+      margin-bottom: 0;
+    }
+  }
+  
+  .modal-actions {
+    display: flex;
+    gap: 12px;
+    padding: 16px 24px 24px;
+    justify-content: flex-end;
+    
+    .btn-cancel-delete,
+    .btn-confirm-delete {
+      padding: 10px 20px;
+      border-radius: $border-radius;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all $transition-normal;
+      border: 1px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 40px;
+    }
+    
+    .btn-cancel-delete {
+      background: rgba($bg-primary, 0.8);
+      color: $text-muted;
+      border-color: rgba($accent-primary, 0.2);
+      
+      &:hover {
+        background: rgba($bg-primary, 0.9);
+        color: $text-primary;
+        border-color: rgba($accent-primary, 0.4);
+      }
+    }
+    
+    .btn-confirm-delete {
+      background: linear-gradient(135deg, $accent-red 0%, darken($accent-red, 10%) 100%);
+      color: $text-secondary;
+      box-shadow: 0 4px 12px rgba($accent-red, 0.3);
+      
+      &:hover {
+        background: linear-gradient(135deg, darken($accent-red, 5%) 0%, darken($accent-red, 15%) 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba($accent-red, 0.4);
+      }
+      
+      &:active {
+        transform: translateY(0);
+      }
+    }
+  }
+}
+
+// Scrollbar Styling
+.server-list,
+.add-server-form {
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba($bg-primary, 0.3);
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba($accent-primary, 0.3);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba($accent-primary, 0.5);
+    }
+  }
+} 

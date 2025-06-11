@@ -1,0 +1,57 @@
+@import 'variables';
+@import 'mixins';
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: $font-mono;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: $bg-tertiary;
+  color: $text-primary;
+}
+
+#root {
+  height: 100vh;
+  overflow: hidden;
+}
+
+// Remove default input styles
+input, textarea {
+  font-family: inherit;
+}
+
+// Disable text selection on UI elements
+button, .control-button, .prompt {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+// Global scrollbar styling
+::-webkit-scrollbar {
+  width: 8px;
+
+  &-track {
+    background: #f1f1f1;
+  }
+
+  &-thumb {
+    background: #888;
+    border-radius: $border-radius;
+
+    &:hover {
+      background: #555;
+    }
+  }
+} 

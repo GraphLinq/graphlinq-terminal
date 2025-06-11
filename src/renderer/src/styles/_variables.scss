@@ -1,0 +1,80 @@
+// Color Variables - Purple Theme
+$bg-primary: #1a1a2e;
+$bg-secondary: #16213e;
+$bg-tertiary: #0f1419;
+$border-color: #3a2a5c;
+$border-light: #4a3a6c;
+
+// Text Colors
+$text-primary: #e0e7ff;
+$text-secondary: #ffffff;
+$text-muted: #8b8db8;
+$text-error: #ef4444;
+$text-warning: #f59e0b;
+$text-success: #10b981;
+
+// Accent Colors - Purple Theme
+$accent-primary: #8b5cf6;
+$accent-secondary: #a855f7;
+$accent-tertiary: #c084fc;
+$accent-blue: #3b82f6;
+$accent-teal: #06b6d4;
+$accent-red: #ef4444;
+$accent-orange: #f59e0b;
+$accent-purple: #8b5cf6;
+$accent-green: #10b981;
+
+// GraphLinq Brand Colors
+$brand-primary: #8b5cf6;
+$brand-secondary: #a855f7;
+$brand-accent: #c084fc;
+$brand-gradient-start: #8b5cf6;
+$brand-gradient-end: #a855f7;
+
+// Selection and Focus
+$selection-bg: #6366f1;
+$focus-outline: #8b5cf6;
+
+// Shadows
+$shadow-light: 0 2px 4px rgba(0, 0, 0, 0.1);
+$shadow-medium: 0 4px 8px rgba(0, 0, 0, 0.15);
+$shadow-heavy: 0 8px 16px rgba(0, 0, 0, 0.2);
+
+// Transitions
+$transition-fast: 0.15s ease;
+$transition-normal: 0.2s ease;
+$transition-slow: 0.3s ease;
+
+// Breakpoints
+$breakpoint-mobile: 768px;
+$breakpoint-tablet: 1024px;
+$breakpoint-desktop: 1200px;
+
+// Z-index layers
+$z-index-base: 1;
+$z-index-dropdown: 10;
+$z-index-sticky: 20;
+$z-index-fixed: 30;
+$z-index-modal-backdrop: 40;
+$z-index-modal: 50;
+$z-index-popover: 60;
+$z-index-tooltip: 70;
+$z-index-toast: 80;
+$z-index-header: 100;
+
+// Font stacks
+$font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+$font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+
+// Sizes
+$header-height: 32px;
+$header-height-mobile: 30px;
+$sidebar-width: 420px;
+$sidebar-min-width: 320px;
+$sidebar-max-width: 600px;
+$file-explorer-width: 800px;
+$file-explorer-min-width: 300px;
+$file-explorer-max-width: 800px;
+$border-radius: 4px;
+$border-radius-small: 3px;
+$border-radius-large: 8px; 

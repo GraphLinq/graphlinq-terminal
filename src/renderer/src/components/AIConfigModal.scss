@@ -1,0 +1,334 @@
+@import '../styles/variables';
+
+.ai-config-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba($bg-primary, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: $z-index-modal;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.ai-config-modal {
+  background: rgba($bg-secondary, 0.98);
+  border: 1px solid rgba($border-color, 0.3);
+  border-radius: $border-radius-large;
+  width: 90%;
+  max-width: 500px;
+  max-height: 85vh;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.ai-config-header {
+  padding: 24px;
+  border-bottom: 1px solid rgba($border-color, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba($bg-primary, 0.6);
+
+  h3 {
+    margin: 0;
+    color: $text-primary;
+    font-size: 20px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    &::before {
+      content: '⚙️';
+      font-size: 18px;
+    }
+  }
+}
+
+.ai-config-close-button {
+  background: rgba($bg-tertiary, 0.6);
+  border: 1px solid rgba($border-color, 0.3);
+  color: $text-muted;
+  padding: 8px;
+  border-radius: $border-radius;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all $transition-normal;
+  width: 36px;
+  height: 36px;
+
+  &:hover {
+    background: rgba($accent-primary, 0.15);
+    border-color: rgba($accent-primary, 0.4);
+    color: $accent-primary;
+    transform: translateY(-1px);
+  }
+}
+
+.ai-config-content {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba($accent-primary, 0.3);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba($accent-primary, 0.5);
+    }
+  }
+}
+
+.ai-config-status {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: $border-radius-large;
+  font-weight: 500;
+  font-size: 14px;
+  
+  &.configured {
+    background: rgba($text-success, 0.1);
+    color: $text-success;
+    border: 1px solid rgba($text-success, 0.3);
+
+    &::before {
+      content: '✅';
+      font-size: 12px;
+    }
+  }
+
+  &.not-configured {
+    background: rgba($text-warning, 0.1);
+    color: $text-warning;
+    border: 1px solid rgba($text-warning, 0.3);
+
+    &::before {
+      content: '⚠️';
+      font-size: 12px;
+    }
+  }
+}
+
+.ai-config-field {
+  margin-bottom: 20px;
+
+  label {
+    display: block;
+    color: $text-primary;
+    font-weight: 500;
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+}
+
+.ai-config-input,
+.ai-config-select {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba($bg-tertiary, 0.6);
+  border: 1px solid rgba($border-color, 0.3);
+  border-radius: $border-radius;
+  color: $text-primary;
+  font-size: 14px;
+  transition: all $transition-normal;
+  box-sizing: border-box;
+
+  &::placeholder {
+    color: $text-muted;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $accent-primary;
+    box-shadow: 0 0 0 3px rgba($accent-primary, 0.1);
+    background: rgba($bg-tertiary, 0.8);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.ai-config-select {
+  cursor: pointer;
+  
+  option {
+    background: $bg-secondary;
+    color: $text-primary;
+  }
+}
+
+.ai-config-help {
+  display: block;
+  color: $text-muted;
+  font-size: 12px;
+  margin-top: 6px;
+  line-height: 1.4;
+
+  a {
+    color: $accent-primary;
+    text-decoration: none;
+    transition: color $transition-normal;
+
+    &:hover {
+      color: lighten($accent-primary, 10%);
+      text-decoration: underline;
+    }
+  }
+}
+
+.ai-config-info {
+  background: rgba($bg-tertiary, 0.4);
+  border: 1px solid rgba($border-color, 0.2);
+  border-radius: $border-radius;
+  padding: 16px;
+  margin-top: 20px;
+
+  h4 {
+    margin: 0 0 12px 0;
+    color: $text-primary;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    &::before {
+      content: 'ℹ️';
+      font-size: 12px;
+    }
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 16px;
+    list-style: none;
+  }
+
+  li {
+    color: $text-muted;
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 6px;
+    position: relative;
+
+    &::before {
+      content: '•';
+      color: $accent-primary;
+      position: absolute;
+      left: -12px;
+    }
+  }
+}
+
+.ai-config-footer {
+  padding: 20px 24px;
+  border-top: 1px solid rgba($border-color, 0.2);
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  background: rgba($bg-primary, 0.4);
+}
+
+.ai-config-button {
+  padding: 12px 24px;
+  border-radius: $border-radius;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all $transition-normal;
+  min-width: 100px;
+  justify-content: center;
+
+  &.primary {
+    background: $accent-primary;
+    color: $text-secondary;
+
+    &:hover:not(:disabled) {
+      background: darken($accent-primary, 8%);
+      transform: translateY(-1px);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    &:disabled {
+      background: rgba($text-muted, 0.3);
+      color: rgba($text-muted, 0.7);
+      cursor: not-allowed;
+      transform: none;
+    }
+  }
+
+  &.secondary {
+    background: rgba($bg-tertiary, 0.6);
+    color: $text-muted;
+    border: 1px solid rgba($border-color, 0.3);
+
+    &:hover {
+      background: rgba($bg-tertiary, 0.8);
+      color: $text-primary;
+      border-color: rgba($border-color, 0.5);
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+}
+
+@media (max-width: $breakpoint-mobile) {
+  .ai-config-modal {
+    width: 95%;
+    margin: 16px;
+    max-height: 90vh;
+  }
+
+  .ai-config-header,
+  .ai-config-content,
+  .ai-config-footer {
+    padding: 16px;
+  }
+
+  .ai-config-footer {
+    flex-direction: column;
+
+    .ai-config-button {
+      width: 100%;
+    }
+  }
+} 
