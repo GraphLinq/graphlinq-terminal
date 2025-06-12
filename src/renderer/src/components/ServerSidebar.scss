@@ -122,6 +122,13 @@
   }
 }
 
+.header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.folder-btn,
 .add-server-btn {
   background: rgba($accent-primary, 0.1);
   border: 1px solid rgba($accent-primary, 0.3);
@@ -146,6 +153,19 @@
 
   &:active {
     transform: scale(0.95);
+  }
+}
+
+.folder-btn {
+  background: rgba($accent-blue, 0.1);
+  border-color: rgba($accent-blue, 0.3);
+  color: $accent-blue;
+
+  &:hover {
+    background: $accent-blue;
+    border-color: $accent-blue;
+    color: $text-secondary;
+    box-shadow: 0 4px 12px rgba($accent-blue, 0.3);
   }
 }
 

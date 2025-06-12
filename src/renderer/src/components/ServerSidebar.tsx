@@ -194,15 +194,26 @@ const ServerSidebar: React.FC<ServerSidebarProps> = ({
       >
         <div className="sidebar-header">
           <h3>SSH Servers</h3>
-          <button 
-            className="add-server-btn"
-            onClick={() => setShowAddForm(true)}
-            title="Add a server"
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-              <path d="M7 0v14M0 7h14" stroke="currentColor" strokeWidth="2"/>
-            </svg>
-          </button>
+          <div className="header-buttons">
+            <button 
+              className="folder-btn"
+              onClick={() => window.electronAPI?.openServersFolder()}
+              title="Ouvrir le dossier des serveurs"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z"/>
+              </svg>
+            </button>
+            <button 
+              className="add-server-btn"
+              onClick={() => setShowAddForm(true)}
+              title="Ajouter un serveur"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                <path d="M7 0v14M0 7h14" stroke="currentColor" strokeWidth="2"/>
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Add Server Form */}

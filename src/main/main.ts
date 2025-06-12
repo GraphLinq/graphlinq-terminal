@@ -258,6 +258,17 @@ ipcMain.handle('open-external', async (event, url: string) => {
   }
 })
 
+// Open servers folder in file explorer
+ipcMain.handle('open-servers-folder', async () => {
+  try {
+    const filePath = getServersFilePath()
+    const folderPath = join(filePath, '..')
+    await shell.openPath(folderPath)
+  } catch (error) {
+    console.error('Error opening servers folder:', error)
+  }
+})
+
 // Directory selection handler
 ipcMain.handle('select-directory', async () => {
   try {

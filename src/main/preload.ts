@@ -60,6 +60,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // External links
   openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
   
+  // Open servers folder
+  openServersFolder: () => ipcRenderer.invoke('open-servers-folder'),
+  
   // Directory selection
   selectDirectory: () => ipcRenderer.invoke('select-directory'),
   
@@ -101,6 +104,7 @@ declare global {
       saveTerminalOptions: (options: any) => Promise<void>
       getTerminalOptions: () => Promise<any>
       openExternal: (url: string) => Promise<void>
+      openServersFolder: () => Promise<void>
       selectDirectory: () => Promise<any>
       generateSSHKey: (config: any) => Promise<any>
     }
