@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
+import { Terminal as XTerm } from '@xterm/xterm'
+import { FitAddon } from '@xterm/addon-fit'
+import { WebLinksAddon } from '@xterm/addon-web-links'
+import { SearchAddon } from '@xterm/addon-search'
+import '@xterm/xterm/css/xterm.css'
 import './Terminal.scss'
-import TerminalContextMenu from './TerminalContextMenu'
 import TerminalOptionsModal from './TerminalOptionsModal'
-import TerminalDisplay from './TerminalDisplay'
-import { useTerminalData } from '../hooks/useTerminalData'
-import { useTerminalInput } from '../hooks/useTerminalInput'
-import { defaultStyle } from './types/terminal'
 
 interface TerminalProps {
   sessionId: string | null
@@ -15,280 +15,326 @@ interface TerminalProps {
 
 const Terminal: React.FC<TerminalProps> = ({ sessionId, isConnected, onDisconnect }) => {
   const terminalRef = useRef<HTMLDivElement>(null)
+  const xtermRef = useRef<XTerm | null>(null)
+  const fitAddonRef = useRef<FitAddon | null>(null)
+  const searchAddonRef = useRef<SearchAddon | null>(null)
   const [isOptionsModalOpen, setIsOptionsModalOpen] = useState<boolean>(false)
+  const [currentWorkingDirectory, setCurrentWorkingDirectory] = useState<string>('/home')
 
-  // Calculate terminal dimensions based on container size
-  const calculateDimensions = useCallback(() => {
-    if (!terminalRef.current) return { rows: 24, cols: 80 }
+  // Initialize XTerm.js
+  useEffect(() => {
+    if (!terminalRef.current || xtermRef.current) return
+
+    // Create terminal instance
+    const terminal = new XTerm({
+      theme: {
+        background: '#1e1e1e',
+        foreground: '#ffffff',
+        cursor: '#ffffff',
+        selectionBackground: '#3e3e3e',
+        black: '#000000',
+        red: '#cd3131',
+        green: '#0dbc79',
+        yellow: '#e5e510',
+        blue: '#2472c8',
+        magenta: '#bc3fbc',
+        cyan: '#11a8cd',
+        white: '#e5e5e5',
+        brightBlack: '#666666',
+        brightRed: '#f14c4c',
+        brightGreen: '#23d18b',
+        brightYellow: '#f5f543',
+        brightBlue: '#3b8eea',
+        brightMagenta: '#d670d6',
+        brightCyan: '#29b8db',
+        brightWhite: '#ffffff'
+      },
+      fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", "SF Mono", Monaco, Menlo, "Ubuntu Mono", monospace',
+      fontSize: 14,
+      fontWeight: 'normal',
+      lineHeight: 1.2,
+      cursorBlink: true,
+      cursorStyle: 'block',
+      scrollback: 10000,
+      tabStopWidth: 4,
+      allowTransparency: false,
+      macOptionIsMeta: true,
+      rightClickSelectsWord: true,
+      wordSeparator: ' ()[]{}\'"`'
+    })
+
+    // Create addons
+    const fitAddon = new FitAddon()
+    const webLinksAddon = new WebLinksAddon()
+    const searchAddon = new SearchAddon()
+
+    // Load addons
+    terminal.loadAddon(fitAddon)
+    terminal.loadAddon(webLinksAddon)
+    terminal.loadAddon(searchAddon)
+
+    // Open terminal
+    terminal.open(terminalRef.current)
+
+    // Store references
+    xtermRef.current = terminal
+    fitAddonRef.current = fitAddon
+    searchAddonRef.current = searchAddon
+
+    // Fit terminal to container
+    fitAddon.fit()
+
+    // Handle data input from user
+    terminal.onData((data) => {
+      if (!isConnected || !sessionId) return
+
+             // Intercept editor commands before sending to SSH
+       if (data === '\r') {
+         const currentLine = getCurrentCommandLine(terminal)
+         if (currentLine) {
+           handleEditorCommand(currentLine).then((intercepted) => {
+             if (!intercepted) {
+               // Send data to SSH session if not intercepted
+               if (window.electronAPI?.sshWrite) {
+                 window.electronAPI.sshWrite(sessionId, data)
+               }
+             }
+           })
+           return // Don't send immediately, wait for async check
+         }
+       }
+
+      // Send data to SSH session
+      if (window.electronAPI?.sshWrite) {
+        window.electronAPI.sshWrite(sessionId, data)
+      }
+    })
+
+    // Handle terminal resize
+    terminal.onResize(({ cols, rows }) => {
+      if (sessionId && isConnected && (window as any).electronAPI?.sshResize) {
+        (window as any).electronAPI.sshResize(sessionId, cols, rows)
+      }
+    })
+
+    // Handle selection for copy/paste
+    terminal.onSelectionChange(() => {
+      const selection = terminal.getSelection()
+      if (selection) {
+        // Store selection for context menu
+      }
+    })
+
+    // Cleanup
+    return () => {
+      terminal.dispose()
+      xtermRef.current = null
+      fitAddonRef.current = null
+      searchAddonRef.current = null
+    }
+  }, [isConnected, sessionId])
+
+  // Get current command line from terminal
+  const getCurrentCommandLine = useCallback((terminal: XTerm): string => {
+    const buffer = terminal.buffer.active
+    const currentLine = buffer.getLine(buffer.cursorY)
+    if (!currentLine) return ''
+
+    const lineText = currentLine.translateToString(true)
     
-    const rect = terminalRef.current.getBoundingClientRect()
-    const charWidth = 8.4 // Character width in pixels
-    const charHeight = 16 // Character height in pixels
-    const padding = 16 // Total padding (8px on each side)
-    
-    const availableWidth = rect.width - padding
-    const availableHeight = rect.height - padding
-    
-    const cols = Math.max(20, Math.floor(availableWidth / charWidth))
-    const rows = Math.max(5, Math.floor(availableHeight / charHeight))
-    
-    return { rows, cols }
+    // Extract working directory from prompt and command
+    const pathPromptMatch = lineText.match(/[^:]*:([^$#>]+)[$#>]\s*(.*)$/)
+    if (pathPromptMatch) {
+      const detectedPath = pathPromptMatch[1].trim()
+      if (detectedPath && detectedPath !== '~' && detectedPath.startsWith('/')) {
+        setCurrentWorkingDirectory(detectedPath)
+      }
+      return pathPromptMatch[2].trim()
+    }
+
+    // Fallback: find command after prompt
+    const promptMatch = lineText.match(/[\$#>]\s*(.*)$/)
+    return promptMatch ? promptMatch[1].trim() : ''
   }, [])
 
-  // Calculate initial dimensions
-  const { rows, cols } = calculateDimensions()
+  // Handle editor commands
+  const handleEditorCommand = useCallback(async (command: string): Promise<boolean> => {
+    const trimmedCommand = command.trim()
+    if (!trimmedCommand) return false
 
-  // Use terminal data hook
-  const {
-    terminalState,
-    updateTerminalState,
-    handleScroll,
-    resetScroll,
-    parseAnsiSequence,
-    initializeBuffer,
-    processSSHData
-  } = useTerminalData({ sessionId, isConnected, rows, cols })
+    // Define editor commands
+    const editorPatterns = [
+      /^nano\s+(.+)$/,
+      /^vim\s+(.+)$/,
+      /^vi\s+(.+)$/,
+      /^emacs\s+(.+)$/,
+      /^code\s+(.+)$/,
+      /^edit\s+(.+)$/,
+      /^gedit\s+(.+)$/,
+      /^kate\s+(.+)$/
+    ]
 
-  // Create stable reference for processSSHData
-  const processSSHDataRef = useRef(processSSHData)
-  processSSHDataRef.current = processSSHData
-
-  // Use terminal input hook
-  const {
-    isCellSelected,
-    handleCopy,
-    handlePaste,
-    handleKeyDown,
-    handleContextMenu,
-    handleCloseContextMenu,
-    handleMouseDown,
-    handleMouseMove,
-    handleMouseUp
-  } = useTerminalInput({
-    sessionId,
-    isConnected,
-    terminalState,
-    updateTerminalState,
-    handleScroll,
-    resetScroll,
-    terminalRef,
-    isOptionsModalOpen
-  })
-
-  // Handle window resize
-  useEffect(() => {
-    const handleResize = () => {
-      const { rows: newRows, cols: newCols } = calculateDimensions()
-      
-      updateTerminalState(prev => {
-        // Only update if dimensions actually changed
-        if (prev.rows === newRows && prev.cols === newCols) {
-          return prev
-        }
-
-        // Notify SSH session of resize
-        if (sessionId && isConnected && (window as any).electronAPI?.sshResize) {
-          (window as any).electronAPI.sshResize(sessionId, newCols, newRows)
-        }
-
-        return {
-          ...prev,
-          rows: newRows,
-          cols: newCols,
-          scrollRegionBottom: newRows - 1,
-          renderKey: prev.renderKey + 1
-        }
-      })
-    }
-
-    window.addEventListener('resize', handleResize)
-    handleResize() // Initial calculation
-
-    return () => {
-      window.removeEventListener('resize', handleResize)
-    }
-  }, [calculateDimensions, sessionId, isConnected, updateTerminalState])
-
-  // Handle mouse wheel scroll
-  useEffect(() => {
-    const terminal = terminalRef.current;
-    if (!terminal) return;
-
-    const handleWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      const direction = e.deltaY > 0 ? 'down' : 'up';
-      const amount = Math.abs(e.deltaY) > 50 ? 5 : 3;
-      
-      handleScroll(direction, amount);
-    };
-
-    terminal.addEventListener('wheel', handleWheel, { passive: false });
-
-    return () => {
-      terminal.removeEventListener('wheel', handleWheel);
-    };
-  }, [handleScroll]);
-
-  // Handle SSH data with optimized throttling for better performance
-  useEffect(() => {
-    if (!sessionId || !isConnected) return
-
-    let dataBuffer = '';
-    let processTimeout: NodeJS.Timeout | null = null;
-    let isProcessing = false;
-    let isUnmounted = false;
-
-    const processBufferedData = () => {
-      if (!dataBuffer || isProcessing || isUnmounted) return;
-      
-      isProcessing = true;
-      const dataToProcess = dataBuffer;
-      dataBuffer = '';
-      
-      // Use requestAnimationFrame for better performance
-      requestAnimationFrame(() => {
-        if (!isUnmounted) {
-          processSSHDataRef.current(dataToProcess);
-        }
-        isProcessing = false;
+    for (const pattern of editorPatterns) {
+      const match = trimmedCommand.match(pattern)
+      if (match) {
+        const filePath = match[1].trim().replace(/^["']|["']$/g, '')
         
-        // Process any data that accumulated during processing
-        if (dataBuffer && !isUnmounted) {
-          processTimeout = setTimeout(processBufferedData, 8);
+        // Get current working directory
+        let actualCwd = currentWorkingDirectory
+        try {
+          if (window.electronAPI && 'sshExecuteCommand' in window.electronAPI && sessionId) {
+            const result = await (window.electronAPI as any).sshExecuteCommand(sessionId, 'pwd')
+            if (result.success && result.output) {
+              actualCwd = result.output.trim()
+              setCurrentWorkingDirectory(actualCwd)
+            }
+          }
+        } catch (error) {
+          console.error('Error getting current directory:', error)
         }
-      });
-    };
+
+        // Resolve path
+        const absolutePath = filePath.startsWith('/') 
+          ? filePath 
+          : `${actualCwd}/${filePath}`
+
+        // Dispatch event to open file editor
+        const event = new CustomEvent('ai-open-file-editor', {
+          detail: { 
+            filepath: absolutePath, 
+            reason: `Editing file via ${trimmedCommand.split(' ')[0]} command` 
+          }
+        })
+        window.dispatchEvent(event)
+
+        console.log(`Editor command intercepted: ${trimmedCommand} -> ${absolutePath}`)
+        
+        // Send newline to show command was "executed"
+        if (xtermRef.current) {
+          xtermRef.current.write('\r\n')
+        }
+        
+        return true
+      }
+    }
+
+    return false
+  }, [currentWorkingDirectory, sessionId])
+
+  // Handle SSH data
+  useEffect(() => {
+    if (!sessionId || !isConnected || !xtermRef.current) return
 
     const handleSSHData = (receivedSessionId: string, data: string) => {
-      if (receivedSessionId !== sessionId || isUnmounted) return;
-      
-      // Buffer the data
-      dataBuffer += data;
-      
-      // Clear existing timeout
-      if (processTimeout) {
-        clearTimeout(processTimeout);
+      if (receivedSessionId === sessionId && xtermRef.current) {
+        xtermRef.current.write(data)
       }
-      
-      // Process buffered data with optimized timing
-      if (!isProcessing && !isUnmounted) {
-        processTimeout = setTimeout(processBufferedData, 8); // Faster response
-      }
-    };
+    }
 
-    // Clean up any existing listeners first
+    // Clean up existing listeners
     if ((window as any).electronAPI?.offSSHData) {
       (window as any).electronAPI.offSSHData()
     }
 
-    // Add the new listener
+    // Add new listener
     if ((window as any).electronAPI?.onSSHData) {
       (window as any).electronAPI.onSSHData(handleSSHData)
     }
 
     return () => {
-      isUnmounted = true;
       if ((window as any).electronAPI?.offSSHData) {
         (window as any).electronAPI.offSSHData()
       }
-      if (processTimeout) {
-        clearTimeout(processTimeout);
+    }
+  }, [sessionId, isConnected])
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (fitAddonRef.current) {
+        fitAddonRef.current.fit()
       }
     }
-  }, [sessionId, isConnected]) // Removed processSSHData from dependencies
 
-  // Global keyboard shortcuts
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  // Handle keyboard shortcuts
   useEffect(() => {
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if (!isConnected || !sessionId || isOptionsModalOpen) return;
-      
-      // Ctrl+C avec une sélection
-      if (e.ctrlKey && e.key === 'c' && terminalState.selectionStart && terminalState.selectionEnd) {
-        if (
-          terminalState.selectionStart.row !== terminalState.selectionEnd.row ||
-          terminalState.selectionStart.col !== terminalState.selectionEnd.col
-        ) {
-          e.preventDefault();
-          void handleCopy();
-          return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!xtermRef.current || !isConnected) return
+
+      // Ctrl+C - Copy selection
+      if (e.ctrlKey && e.key === 'c' && xtermRef.current.hasSelection()) {
+        e.preventDefault()
+        const selection = xtermRef.current.getSelection()
+        if (selection && window.electronAPI?.clipboardWriteText) {
+          window.electronAPI.clipboardWriteText(selection)
         }
+        return
       }
-      
-      // Ctrl+V pour coller
+
+      // Ctrl+V - Paste
       if (e.ctrlKey && e.key === 'v') {
-        e.preventDefault();
-        void handlePaste();
-        return;
+        e.preventDefault()
+        if (window.electronAPI?.clipboardReadText) {
+          window.electronAPI.clipboardReadText().then((text) => {
+            if (text && xtermRef.current && window.electronAPI?.sshWrite && sessionId) {
+              window.electronAPI.sshWrite(sessionId, text)
+            }
+          })
+        }
+        return
       }
-    };
-    
-    document.addEventListener('keydown', handleGlobalKeyDown);
-    
-    return () => {
-      document.removeEventListener('keydown', handleGlobalKeyDown);
-    };
-  }, [isConnected, sessionId, terminalState.selectionStart, terminalState.selectionEnd, handleCopy, handlePaste, isOptionsModalOpen]);
 
-  // Focus and keyboard event handling
-  useEffect(() => {
-    const terminal = terminalRef.current
-    if (!terminal) return
+      // Ctrl+F - Search
+      if (e.ctrlKey && e.key === 'f') {
+        e.preventDefault()
+        if (searchAddonRef.current) {
+          // You can implement a search UI here
+          const searchTerm = prompt('Search in terminal:')
+          if (searchTerm) {
+            searchAddonRef.current.findNext(searchTerm)
+          }
+        }
+        return
+      }
 
-    if (isConnected && !isOptionsModalOpen) {
-      terminal.focus()
-    }
-    
-    terminal.addEventListener('keydown', handleKeyDown)
+      // Ctrl+Shift+C - Force copy (alternative)
+      if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+        e.preventDefault()
+        const selection = xtermRef.current.getSelection()
+        if (selection && window.electronAPI?.clipboardWriteText) {
+          window.electronAPI.clipboardWriteText(selection)
+        }
+        return
+      }
 
-    return () => {
-      terminal.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [handleKeyDown, isConnected, isOptionsModalOpen])
-
-  // Click to focus
-  const handleClick = () => {
-    if (terminalRef.current && isConnected && !isOptionsModalOpen) {
-      terminalRef.current.focus()
-    }
-  }
-
-  // Close context menu on outside click
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (terminalState.contextMenuPosition) {
-        handleCloseContextMenu()
+      // Ctrl+Shift+V - Force paste (alternative)
+      if (e.ctrlKey && e.shiftKey && e.key === 'V') {
+        e.preventDefault()
+        if (window.electronAPI?.clipboardReadText) {
+          window.electronAPI.clipboardReadText().then((text) => {
+            if (text && xtermRef.current && window.electronAPI?.sshWrite && sessionId) {
+              window.electronAPI.sshWrite(sessionId, text)
+            }
+          })
+        }
+        return
       }
     }
-    
-    document.addEventListener('click', handleClickOutside)
-    
-    return () => {
-      document.removeEventListener('click', handleClickOutside)
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isConnected, sessionId])
+
+  // Focus terminal when connected
+  useEffect(() => {
+    if (isConnected && xtermRef.current && !isOptionsModalOpen) {
+      xtermRef.current.focus()
     }
-  }, [terminalState.contextMenuPosition, handleCloseContextMenu])
-
-  // AI Explanation Tooltip Component
-  const AIExplanationTooltip: React.FC = () => {
-    if (!terminalState.aiExplanationText) return null;
-
-    return (
-      <div 
-        className="ai-explanation-tooltip"
-        style={{
-          top: '12px',
-          left: '50%',
-          transform: 'translateX(-50%)'
-        }}
-      >
-        <div className="ai-explanation-content">
-          <span className="ai-explanation-icon">🤖</span>
-          <span className="ai-explanation-text">{terminalState.aiExplanationText}</span>
-        </div>
-      </div>
-    );
-  };
+  }, [isConnected, isOptionsModalOpen])
 
   if (!isConnected) {
     return (
@@ -308,56 +354,18 @@ const Terminal: React.FC<TerminalProps> = ({ sessionId, isConnected, onDisconnec
   }
 
   return (
-    <div 
-      className={`terminal-container ${terminalState.isAIWriting ? 'ai-writing-active' : ''}`}
-      ref={terminalRef}
-      tabIndex={0}
-      onClick={handleClick}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onContextMenu={handleContextMenu}
-    >
-      <TerminalDisplay
-        buffer={terminalState.buffer}
-        alternateBuffer={terminalState.alternateBuffer}
-        isAlternateScreen={terminalState.isAlternateScreen}
-        cursorRow={terminalState.cursorRow}
-        cursorCol={terminalState.cursorCol}
-        rows={terminalState.rows}
-        cols={terminalState.cols}
-        scrollOffset={terminalState.scrollOffset}
-        isCellSelected={isCellSelected}
-        defaultStyle={defaultStyle}
+    <div className="terminal-container">
+      <div 
+        ref={terminalRef} 
+        className="xterm-container"
+        style={{ width: '100%', height: '100%' }}
       />
-
-      {/* Scroll indicator */}
-      {terminalState.scrollOffset > 0 && (
-        <div className="terminal-scroll-indicator">
-          <span>Viewing history</span>
-          <small>({terminalState.scrollOffset} lines back)</small>
-        </div>
-      )}
-
-      {/* Context menu */}
-      {terminalState.contextMenuPosition && (
-        <TerminalContextMenu 
-          position={terminalState.contextMenuPosition}
-          onCopy={handleCopy}
-          onPaste={handlePaste}
-          onClose={handleCloseContextMenu}
-        />
-      )}
 
       {/* Terminal options modal */}
       <TerminalOptionsModal 
         isOpen={isOptionsModalOpen}
         onClose={() => setIsOptionsModalOpen(false)}
       />
-
-      {/* AI Explanation Tooltip */}
-      <AIExplanationTooltip />
-
     </div>
   )
 }
