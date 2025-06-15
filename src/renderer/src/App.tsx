@@ -248,65 +248,71 @@ function App() {
               <div className="control-button minimize" onClick={handleMinimize}></div>
               <div className="control-button maximize" onClick={handleMaximize}></div>
             </div>
-            <button 
-              className={`sidebar-toggle ${sidebarOpen ? 'open' : ''}`}
-              onClick={handleSidebarToggle}
-              title="Toggle server list"
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-                <path d="M1 2h12v2H1V2zm0 4h12v2H1V6zm0 4h12v2H1v-2z"/>
-              </svg>
-            </button>
-            <div className="terminal-title">
-              Graphlinq Terminal {isConnected && connectedServer && `- ${connectedServer.name}`}
-            </div>
-            <div className="terminal-status">
-              <div className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`}></div>
-            </div>
-            {isConnected && (
-              <button 
-                className={`file-explorer-toggle ${isFileExplorerOpen ? 'open' : ''}`}
-                onClick={handleToggleFileExplorer}
-                                  title="File Explorer"
-              >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-                  <path d="M1 2v1h12V2H1zm0 2v8h12V4H1zm2 1h8v6H3V5z"/>
-                </svg>
-              </button>
-            )}
-            <MenuComponent />
-          </>
-        ) : (
-          // Windows/Linux layout - controls on the right
-          <>
-            <div className="terminal-drag-area">
+            <div className="terminal-header-left">
               <button 
                 className={`sidebar-toggle ${sidebarOpen ? 'open' : ''}`}
                 onClick={handleSidebarToggle}
-                title="Toggle server list"
+                title="Server Manager"
               >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-                  <path d="M1 2h12v2H1V2zm0 4h12v2H1V6zm0 4h12v2H1v-2z"/>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M2 4h12v2H2V4zm0 4h12v2H2V8zm0 4h12v2H2v-2z"/>
                 </svg>
+                <span>Servers</span>
               </button>
-              <div className="terminal-title">
-                Graphlinq Terminal {isConnected && connectedServer && `- ${connectedServer.name}`}
-              </div>
-              <div className="terminal-status">
-                <div className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`}></div>
-              </div>
               {isConnected && (
                 <button 
                   className={`file-explorer-toggle ${isFileExplorerOpen ? 'open' : ''}`}
                   onClick={handleToggleFileExplorer}
                   title="File Explorer"
                 >
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-                    <path d="M1 2v1h12V2H1zm0 2v8h12V4H1zm2 1h8v6H3V5z"/>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M1.5 2A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 14.5 4H7.621a.75.75 0 0 1-.53-.22L5.22 1.91A.75.75 0 0 0 4.69 1.5H1.5z"/>
                   </svg>
+                  <span>Files</span>
                 </button>
               )}
+            </div>
+            <div className="terminal-title">
+              Graphlinq Terminal
+            </div>
+            <div className="terminal-header-right">
               <MenuComponent />
+            </div>
+          </>
+        ) : (
+          // Windows/Linux layout - controls on the right
+          <>
+            <div className="terminal-drag-area">
+              <div className="terminal-header-left">
+                <button 
+                  className={`sidebar-toggle ${sidebarOpen ? 'open' : ''}`}
+                  onClick={handleSidebarToggle}
+                  title="Server Manager"
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M2 4h12v2H2V4zm0 4h12v2H2V8zm0 4h12v2H2v-2z"/>
+                  </svg>
+                  <span>Servers</span>
+                </button>
+                {isConnected && (
+                  <button 
+                    className={`file-explorer-toggle ${isFileExplorerOpen ? 'open' : ''}`}
+                    onClick={handleToggleFileExplorer}
+                    title="File Explorer"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M1.5 2A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 14.5 4H7.621a.75.75 0 0 1-.53-.22L5.22 1.91A.75.75 0 0 0 4.69 1.5H1.5z"/>
+                    </svg>
+                    <span>Files</span>
+                  </button>
+                )}
+              </div>
+              <div className="terminal-title">
+                Graphlinq Terminal
+              </div>
+              <div className="terminal-header-right">
+                <MenuComponent />
+              </div>
             </div>
             <div className="terminal-controls windows">
               <div className="control-button minimize" onClick={handleMinimize}>
@@ -352,6 +358,45 @@ function App() {
           isOpen={isFileExplorerOpen}
           onToggle={handleToggleFileExplorer}
         />
+      </div>
+
+      {/* Footer avec informations de connexion */}
+      <div className="terminal-footer">
+        <div className="footer-left">
+          <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
+            <div className="status-indicator"></div>
+            <span className="status-text">
+              {isConnecting ? 'Connecting...' : isConnected ? 'Connected' : 'Disconnected'}
+            </span>
+          </div>
+        </div>
+        
+        <div className="footer-center">
+          {connectedServer && (
+            <div className="footer-server-info">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                <path d="M2 3h10v2H2V3zm0 3h10v2H2V6zm0 3h10v2H2V9z"/>
+              </svg>
+              <span className="server-name">{connectedServer.name}</span>
+              <span className="server-host">({connectedServer.username}@{connectedServer.host}:{connectedServer.port})</span>
+            </div>
+          )}
+        </div>
+        
+        <div className="footer-right">
+          {isConnected && (
+            <button 
+              className="disconnect-button"
+              onClick={handleDisconnect}
+              title="Disconnect"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                <path d="M6 1a5 5 0 1 0 0 10A5 5 0 0 0 6 1zM4.5 4.5L6 6l1.5-1.5L8 5l-1.5 1.5L8 8l-.5.5L6 7l-1.5 1.5L4 8l1.5-1.5L4 5l.5-.5z"/>
+              </svg>
+              Disconnect
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Modal des options du terminal */}

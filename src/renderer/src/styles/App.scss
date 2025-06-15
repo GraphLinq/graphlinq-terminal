@@ -59,10 +59,27 @@ body {
   background: $bg-secondary;
   border-bottom: 1px solid $border-color;
   @include flex-between;
-  padding: 0 8px;
+  padding: 0 12px;
   position: relative;
   z-index: $z-index-header;
   @include drag;
+
+  // Header sections - uniquely named to avoid conflicts
+  .terminal-header-left,
+  .terminal-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    @include no-drag;
+  }
+
+  .terminal-header-left {
+    flex-shrink: 0;
+  }
+
+  .terminal-header-right {
+    flex-shrink: 0;
+  }
 }
 
 // Sidebar Toggle Button
@@ -72,14 +89,26 @@ body {
   border: 1px solid $border-color;
   border-radius: $border-radius-small;
   color: $text-primary;
-  padding: 4px 6px;
-  margin-right: 8px;
+  padding: 4px 8px;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  height: 24px;
   @include button-hover($border-color);
 
   &.open {
     background: $accent-primary;
     border-color: $accent-primary;
     color: $text-secondary;
+  }
+
+  span {
+    white-space: nowrap;
+  }
+
+  svg {
+    width: 14px;
+    height: 14px;
   }
 }
 
@@ -146,37 +175,12 @@ body {
 
 // Terminal Title
 .terminal-title {
-  font-size: 13px;
-  font-weight: 400;
+  font-size: 14px;
+  font-weight: 500;
   color: $text-primary;
   text-align: center;
   flex: 1;
   @include drag;
-}
-
-// Terminal Status
-.terminal-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  @include no-drag;
-}
-
-.status-indicator {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: $text-muted;
-  transition: background-color $transition-slow;
-
-  &.connected {
-    background: $accent-green;
-    box-shadow: 0 0 4px rgba(16, 185, 129, 0.5);
-  }
-
-  &.disconnected {
-    background: $text-muted;
-  }
 }
 
 // File Explorer Toggle Button
@@ -186,8 +190,11 @@ body {
   border: 1px solid $border-color;
   border-radius: $border-radius-small;
   color: $text-primary;
-  padding: 4px 6px;
-  margin-right: 8px;
+  padding: 4px 8px;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  height: 24px;
   @include button-hover($border-color);
 
   &.open {
@@ -206,6 +213,15 @@ body {
     background: $accent-secondary;
     border-color: $accent-secondary;
     color: $text-secondary;
+  }
+
+  span {
+    white-space: nowrap;
+  }
+
+  svg {
+    width: 14px;
+    height: 14px;
   }
 }
 
@@ -310,21 +326,90 @@ body {
   }
   
   .terminal-header {
-    padding: 0 4px;
+    padding: 0 8px;
     height: $header-height-mobile;
+
+    .terminal-header-left,
+    .terminal-header-right {
+      gap: 8px;
+    }
   }
   
   .terminal-title {
     font-size: 12px;
   }
   
-  .sidebar-toggle {
-    padding: 3px 4px;
+  .sidebar-toggle,
+  .file-explorer-toggle {
+    padding: 6px 8px;
+    font-size: 12px;
+    
+    span {
+      display: none; // Hide text on mobile, keep only icons
+    }
   }
 
   .terminal-controls.windows .control-button {
     width: 42px;
     height: $header-height-mobile;
+  }
+
+  .terminal-footer {
+    height: 28px;
+    padding: 0 12px;
+    font-size: 11px;
+  }
+
+  .footer-left,
+  .footer-center,
+  .footer-right {
+    gap: 8px;
+  }
+
+  .connection-status {
+    padding: 3px 8px;
+
+    .status-indicator {
+      width: 6px;
+      height: 6px;
+    }
+
+    .status-text {
+      font-size: 10px;
+    }
+  }
+
+  .footer-center .footer-server-info {
+    padding: 3px 8px;
+    gap: 6px;
+
+    svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .server-name {
+      font-size: 11px;
+    }
+
+    .server-host {
+      display: none; // Hide detailed server info on mobile
+    }
+  }
+
+  .disconnect-button {
+    padding: 3px 6px;
+    font-size: 10px;
+    gap: 3px;
+
+    svg {
+      width: 10px;
+      height: 10px;
+    }
+    
+    span {
+      display: none; // Show only icon on mobile
+    }
   }
 }
 
@@ -573,5 +658,139 @@ body {
     &:not(:last-child) {
       border-bottom: 1px solid rgba($border-color, 0.15);
     }
+  }
+}
+
+// Terminal Footer
+.terminal-footer {
+  height: 32px;
+  background: $bg-secondary;
+  border-top: 1px solid $border-color;
+  @include flex-between;
+  padding: 0 16px;
+  font-size: 12px;
+  color: $text-muted;
+  flex-shrink: 0;
+}
+
+.footer-left,
+.footer-center,
+.footer-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.footer-left {
+  flex-shrink: 0;
+}
+
+.footer-center {
+  flex: 1;
+  justify-content: center;
+}
+
+.footer-right {
+  flex-shrink: 0;
+}
+
+// Connection Status in Footer
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: $bg-primary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-small;
+  transition: all $transition-normal;
+
+  .status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: $text-muted;
+    transition: background-color $transition-slow;
+  }
+
+  &.connected {
+    border-color: rgba($accent-green, 0.3);
+    background: rgba($accent-green, 0.05);
+
+    .status-indicator {
+      background: $accent-green;
+    }
+  }
+
+  &.disconnected .status-indicator {
+    background: $text-muted;
+  }
+
+  .status-text {
+    font-weight: 500;
+    color: $text-primary;
+    font-size: 11px;
+  }
+}
+
+// Server Info in Footer
+.footer-server-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: $text-primary;
+  padding: 4px 12px;
+  background: $bg-primary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-small;
+
+  svg {
+    color: $accent-primary;
+    width: 14px;
+    height: 14px;
+  }
+
+  .server-name {
+    font-weight: 600;
+    color: $accent-primary;
+    font-size: 12px;
+  }
+
+  .server-host {
+    color: $text-muted;
+    font-family: $font-mono;
+    font-size: 11px;
+    background: $bg-tertiary;
+    padding: 2px 6px;
+    border-radius: 3px;
+    border: 1px solid $border-color;
+  }
+}
+
+// Disconnect Button in Footer
+.disconnect-button {
+  @include control-button-base;
+  border: 1px solid rgba($accent-red, 0.3);
+  border-radius: $border-radius-small;
+  color: $accent-red;
+  padding: 4px 8px;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  background: transparent;
+  transition: all $transition-normal;
+
+  svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  &:hover {
+    background: rgba($accent-red, 0.1);
+    border-color: $accent-red;
+  }
+
+  &:active {
+    background: rgba($accent-red, 0.2);
   }
 } 

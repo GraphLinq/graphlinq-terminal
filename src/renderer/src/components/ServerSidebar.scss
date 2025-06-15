@@ -48,170 +48,282 @@
       }
     }
   }
-}
 
-// Header Section
-.manager-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: rgba($bg-secondary, 0.95);
-  border-bottom: 1px solid rgba($accent-primary, 0.1);
-  min-height: 60px;
-
-  .header-left {
+  // Header Section - scoped to server-manager
+  .manager-header {
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: rgba($bg-secondary, 0.95);
+    border-bottom: 1px solid rgba($accent-primary, 0.1);
+    min-height: 60px;
 
-    .close-btn {
-      background: transparent;
-      border: 1px solid rgba($accent-primary, 0.2);
-      border-radius: $border-radius-small;
-      color: $text-muted;
-      padding: 6px;
-      cursor: pointer;
-      transition: color $transition-normal, border-color $transition-normal;
+    .header-left {
       display: flex;
       align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
+      gap: 12px;
 
-      &:hover {
-        color: $accent-red;
-        border-color: rgba($accent-red, 0.4);
-      }
-    }
-
-    .header-title {
-      h1 {
-        margin: 0 0 2px 0;
-        color: $text-primary;
-        font-size: 18px;
-        font-weight: 600;
-      }
-
-      .server-count {
-        color: $text-muted;
-        font-size: 12px;
-        font-weight: 400;
-      }
-    }
-  }
-
-  .header-actions {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    .view-controls {
-      display: flex;
-      background: rgba($bg-primary, 0.8);
-      border: 1px solid rgba($accent-primary, 0.15);
-      border-radius: $border-radius-small;
-      overflow: hidden;
-
-      .view-btn {
+      .close-btn {
         background: transparent;
-        border: none;
+        border: 1px solid rgba($accent-primary, 0.2);
+        border-radius: $border-radius-small;
         color: $text-muted;
-        padding: 6px 10px;
+        padding: 6px;
         cursor: pointer;
-        transition: background-color $transition-normal, color $transition-normal;
+        transition: color $transition-normal, border-color $transition-normal;
         display: flex;
         align-items: center;
         justify-content: center;
+        width: 28px;
+        height: 28px;
 
         &:hover {
-          background: rgba($accent-primary, 0.08);
+          color: $accent-red;
+          border-color: rgba($accent-red, 0.4);
+        }
+      }
+
+      .header-title {
+        h1 {
+          margin: 0 0 2px 0;
           color: $text-primary;
+          font-size: 18px;
+          font-weight: 600;
         }
 
-        &.active {
-          background: rgba($accent-primary, 0.15);
-          color: $accent-primary;
+        .server-count {
+          color: $text-muted;
+          font-size: 12px;
+          font-weight: 400;
         }
       }
     }
 
-    .add-server-btn {
-      background: $accent-primary;
-      border: none;
-      color: $text-secondary;
-      padding: 8px 16px;
-      border-radius: $border-radius-small;
-      cursor: pointer;
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .view-controls {
+        display: flex;
+        background: rgba($bg-primary, 0.8);
+        border: 1px solid rgba($accent-primary, 0.15);
+        border-radius: $border-radius-small;
+        overflow: hidden;
+
+        .view-btn {
+          background: transparent;
+          border: none;
+          color: $text-muted;
+          padding: 6px 10px;
+          cursor: pointer;
+          transition: background-color $transition-normal, color $transition-normal;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          &:hover {
+            background: rgba($accent-primary, 0.08);
+            color: $text-primary;
+          }
+
+          &.active {
+            background: rgba($accent-primary, 0.15);
+            color: $accent-primary;
+          }
+        }
+      }
+
+      .add-server-btn {
+        background: $accent-primary;
+        border: none;
+        color: $text-secondary;
+        padding: 8px 16px;
+        border-radius: $border-radius-small;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        transition: background-color $transition-normal;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        &:hover {
+          background: darken($accent-primary, 8%);
+        }
+      }
+    }
+  }
+
+  // Main Content Layout
+  .manager-content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  // Sidebar Navigation
+  .manager-sidebar {
+    width: 260px;
+    background: rgba($bg-tertiary, 0.6);
+    border-right: 1px solid rgba($accent-primary, 0.08);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 16px 0;
+
+    h3 {
+      margin: 0 0 12px 0;
+      padding: 0 20px;
+      color: $text-primary;
       font-size: 13px;
-      font-weight: 500;
-      transition: background-color $transition-normal;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      opacity: 0.8;
+    }
 
-      &:hover {
-        background: darken($accent-primary, 8%);
+    // Search Section
+    .search-section {
+      padding: 0 16px 20px;
+      border-bottom: 1px solid rgba($accent-primary, 0.06);
+      margin-bottom: 20px;
+
+      .search-input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+
+        .search-icon {
+          position: absolute;
+          left: 10px;
+          color: $text-muted;
+          opacity: 0.5;
+          z-index: 2;
+        }
+
+        .search-input {
+          width: 100%;
+          padding: 10px 14px 10px 32px;
+          background: rgba($bg-primary, 0.9);
+          border: 1px solid rgba($accent-primary, 0.15);
+          border-radius: $border-radius-small;
+          color: $text-primary;
+          font-size: 13px;
+          transition: border-color $transition-normal;
+
+          &:focus {
+            outline: none;
+            border-color: $accent-primary;
+          }
+
+          &::placeholder {
+            color: $text-muted;
+            opacity: 0.5;
+          }
+        }
+
+        .clear-search {
+          position: absolute;
+          right: 6px;
+          background: transparent;
+          border: none;
+          color: $text-muted;
+          padding: 2px;
+          border-radius: $border-radius-small;
+          cursor: pointer;
+          transition: color $transition-normal;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 20px;
+          height: 20px;
+
+          &:hover {
+            color: $accent-red;
+          }
+        }
       }
     }
-  }
-}
 
-// Main Content Layout
-.manager-content {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
+    // Categories Section
+    .categories-section {
+      padding: 0 16px 20px;
+      border-bottom: 1px solid rgba($accent-primary, 0.06);
+      margin-bottom: 20px;
 
-// Sidebar Navigation
-.manager-sidebar {
-  width: 260px;
-  background: rgba($bg-tertiary, 0.6);
-  border-right: 1px solid rgba($accent-primary, 0.08);
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  padding: 16px 0;
+      .category-list {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
 
-  h3 {
-    margin: 0 0 12px 0;
-    padding: 0 20px;
-    color: $text-primary;
-    font-size: 13px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    opacity: 0.8;
-  }
+        .category-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 12px;
+          background: transparent;
+          border: none;
+          border-radius: $border-radius-small;
+          color: $text-muted;
+          cursor: pointer;
+          transition: background-color $transition-normal, color $transition-normal;
+          text-align: left;
+          font-size: 12px;
+          font-weight: 500;
 
-  // Search Section
-  .search-section {
-    padding: 0 16px 20px;
-    border-bottom: 1px solid rgba($accent-primary, 0.06);
-    margin-bottom: 20px;
+          .category-icon {
+            font-size: 14px;
+            flex-shrink: 0;
+          }
 
-    .search-input-wrapper {
-      position: relative;
-      display: flex;
-      align-items: center;
+          .category-label {
+            flex: 1;
+          }
 
-      .search-icon {
-        position: absolute;
-        left: 10px;
-        color: $text-muted;
-        opacity: 0.5;
-        z-index: 2;
+          .category-count {
+            background: rgba($accent-primary, 0.15);
+            color: $accent-primary;
+            padding: 1px 6px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 500;
+            min-width: 16px;
+            text-align: center;
+          }
+
+          &:hover {
+            background: rgba($accent-primary, 0.06);
+            color: $text-primary;
+          }
+
+          &.active {
+            background: rgba($accent-primary, 0.12);
+            color: $text-primary;
+
+            .category-count {
+              background: $accent-primary;
+              color: $text-secondary;
+            }
+          }
+        }
       }
+    }
 
-      .search-input {
+    // Sort Section
+    .sort-section {
+      padding: 0 16px;
+
+      .sort-select {
         width: 100%;
-        padding: 10px 14px 10px 32px;
+        padding: 8px 12px;
         background: rgba($bg-primary, 0.9);
         border: 1px solid rgba($accent-primary, 0.15);
         border-radius: $border-radius-small;
         color: $text-primary;
-        font-size: 13px;
+        font-size: 12px;
+        cursor: pointer;
         transition: border-color $transition-normal;
 
         &:focus {
@@ -219,480 +331,472 @@
           border-color: $accent-primary;
         }
 
-        &::placeholder {
-          color: $text-muted;
-          opacity: 0.5;
-        }
-      }
-
-      .clear-search {
-        position: absolute;
-        right: 6px;
-        background: transparent;
-        border: none;
-        color: $text-muted;
-        padding: 2px;
-        border-radius: $border-radius-small;
-        cursor: pointer;
-        transition: color $transition-normal;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 20px;
-        height: 20px;
-
-        &:hover {
-          color: $accent-red;
+        option {
+          background: $bg-primary;
+          color: $text-primary;
         }
       }
     }
   }
 
-  // Categories Section
-  .categories-section {
-    padding: 0 16px 20px;
-    border-bottom: 1px solid rgba($accent-primary, 0.06);
-    margin-bottom: 20px;
+  // Main Content Area
+  .manager-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: rgba($bg-primary, 0.3);
 
-    .category-list {
+    // Loading State
+    .loading-state {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: $text-muted;
 
-      .category-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 8px 12px;
-        background: transparent;
+      .loading-spinner {
+        margin-bottom: 16px;
+        color: $accent-primary;
+      }
+
+      p {
+        font-size: 14px;
+        margin: 0;
+      }
+    }
+
+    // Empty State
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      padding: 40px;
+      text-align: center;
+      color: $text-muted;
+
+      .empty-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.6;
+      }
+
+      h3 {
+        margin: 0 0 8px 0;
+        color: $text-primary;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      p {
+        margin: 0 0 24px 0;
+        font-size: 14px;
+        opacity: 0.8;
+      }
+
+      .clear-filters-btn,
+      .add-first-server-btn {
+        background: $accent-primary;
         border: none;
+        color: $text-secondary;
+        padding: 10px 20px;
         border-radius: $border-radius-small;
-        color: $text-muted;
         cursor: pointer;
-        transition: background-color $transition-normal, color $transition-normal;
-        text-align: left;
-        font-size: 12px;
+        font-size: 13px;
         font-weight: 500;
-
-        .category-icon {
-          font-size: 14px;
-          flex-shrink: 0;
-        }
-
-        .category-label {
-          flex: 1;
-        }
-
-        .category-count {
-          background: rgba($accent-primary, 0.15);
-          color: $accent-primary;
-          padding: 1px 6px;
-          border-radius: 8px;
-          font-size: 10px;
-          font-weight: 500;
-          min-width: 16px;
-          text-align: center;
-        }
+        transition: background-color $transition-normal;
 
         &:hover {
-          background: rgba($accent-primary, 0.06);
-          color: $text-primary;
+          background: darken($accent-primary, 8%);
         }
+      }
+    }
+  }
 
-        &.active {
-          background: rgba($accent-primary, 0.12);
-          color: $text-primary;
+  // Servers Container
+  .servers-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
 
-          .category-count {
-            background: $accent-primary;
-            color: $text-secondary;
+    &.grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+
+      // Force grid layout styles
+      .server-card {
+        .server-card-header {
+          .server-info {
+            .server-name-row {
+              display: flex !important;
+              flex-direction: column !important;
+              gap: 8px !important;
+              margin-bottom: 12px;
+
+              .server-name {
+                text-align: center !important;
+              }
+
+              .server-status {
+                justify-content: center !important;
+              }
+            }
+
+            .server-connection-info {
+              .connection-string {
+                text-align: center !important;
+              }
+
+              .server-badges {
+                justify-content: center !important;
+              }
+            }
+
+            .server-description {
+              text-align: center !important;
+            }
           }
         }
+
+        .server-card-actions {
+          justify-content: center !important;
+        }
       }
+    }
+
+    &.list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
   }
 
-  // Sort Section
-  .sort-section {
-    padding: 0 16px;
+  // Server Cards
+  .server-card {
+    background: rgba($bg-secondary, 0.8);
+    border: 1px solid rgba($accent-primary, 0.08);
+    border-radius: $border-radius;
+    padding: 16px;
+    transition: border-color $transition-normal, background-color $transition-normal;
+    cursor: pointer;
+    position: relative;
 
-    .sort-select {
-      width: 100%;
-      padding: 8px 12px;
-      background: rgba($bg-primary, 0.9);
-      border: 1px solid rgba($accent-primary, 0.15);
-      border-radius: $border-radius-small;
-      color: $text-primary;
-      font-size: 12px;
-      cursor: pointer;
-      transition: border-color $transition-normal;
+    &:hover {
+      background: rgba($bg-secondary, 0.9);
+      border-color: rgba($accent-primary, 0.2);
+    }
 
-      &:focus {
-        outline: none;
-        border-color: $accent-primary;
-      }
+    &.active {
+      background: rgba($accent-primary, 0.08);
+      border-color: $accent-primary;
 
-      option {
-        background: $bg-primary;
-        color: $text-primary;
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: $accent-primary;
+        border-radius: $border-radius 0 0 $border-radius;
       }
     }
-  }
-}
 
-// Main Content Area
-.manager-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: rgba($bg-primary, 0.3);
+    &.connecting {
+      background: rgba($accent-orange, 0.06);
+      border-color: rgba($accent-orange, 0.2);
+    }
 
-  // Loading State
-  .loading-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: $text-muted;
-
-    .loading-spinner {
+    .server-card-header {
       margin-bottom: 16px;
-      color: $accent-primary;
+
+      .server-info {
+        flex-direction: column;
+        
+        .server-name-row {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-bottom: 12px;
+
+          .server-name {
+            margin: 0;
+            color: $text-primary;
+            font-size: 16px;
+            font-weight: 600;
+            line-height: 1.3;
+            text-align: center;
+          }
+
+          .server-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+
+            svg {
+              &.connected {
+                color: $accent-green;
+              }
+              &.connecting {
+                color: $accent-orange;
+              }
+              &.disconnected {
+                color: $text-muted;
+              }
+            }
+
+            .status-text {
+              font-size: 11px;
+              font-weight: 600;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+
+              &.connected {
+                color: $accent-green;
+              }
+              &.connecting {
+                color: $accent-orange;
+              }
+              &.disconnected {
+                color: $text-muted;
+              }
+            }
+          }
+        }
+
+        .server-connection-info {
+          margin-bottom: 12px;
+
+          .connection-string {
+            display: block;
+            color: $text-primary;
+            font-family: $font-mono;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            padding: 6px 10px;
+            background: rgba($bg-tertiary, 0.4);
+            border-radius: $border-radius-small;
+            border-left: 3px solid $accent-primary;
+            text-align: center;
+          }
+
+          .server-badges {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+
+            .category-badge,
+            .auth-badge {
+              display: flex;
+              align-items: center;
+              gap: 4px;
+              font-size: 11px;
+              padding: 4px 8px;
+              border-radius: 12px;
+              font-weight: 600;
+              text-transform: capitalize;
+              white-space: nowrap;
+            }
+
+            .category-badge {
+              background: rgba($accent-blue, 0.2);
+              color: $accent-blue;
+              border: 1px solid rgba($accent-blue, 0.3);
+            }
+
+            .auth-badge {
+              &.password {
+                background: rgba($accent-orange, 0.2);
+                color: $accent-orange;
+                border: 1px solid rgba($accent-orange, 0.3);
+              }
+
+              &.privateKey {
+                background: rgba($accent-green, 0.2);
+                color: $accent-green;
+                border: 1px solid rgba($accent-green, 0.3);
+              }
+            }
+          }
+        }
+
+        .server-description {
+          margin: 0;
+          color: $text-muted;
+          font-size: 12px;
+          line-height: 1.4;
+          padding: 8px 12px;
+          background: rgba($bg-tertiary, 0.3);
+          border-radius: $border-radius-small;
+          border-left: 2px solid rgba($accent-primary, 0.3);
+          text-align: center;
+        }
+      }
     }
 
-    p {
-      font-size: 14px;
-      margin: 0;
+    .server-card-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+      padding-top: 16px;
+      border-top: 1px solid rgba($accent-primary, 0.1);
+
+      .action-btn {
+        background: rgba($bg-primary, 0.9);
+        border: 1px solid rgba($accent-primary, 0.15);
+        color: $text-muted;
+        padding: 6px 10px;
+        border-radius: $border-radius-small;
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 500;
+        transition: background-color $transition-normal, color $transition-normal, border-color $transition-normal;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        min-height: 28px;
+
+        &.connect:hover {
+          background: $accent-primary;
+          border-color: $accent-primary;
+          color: $text-secondary;
+        }
+
+        &.disconnect:hover {
+          background: $accent-red;
+          border-color: $accent-red;
+          color: $text-secondary;
+        }
+
+        &.edit:hover {
+          background: $accent-blue;
+          border-color: $accent-blue;
+          color: $text-secondary;
+        }
+
+        &.delete:hover {
+          background: $accent-red;
+          border-color: $accent-red;
+          color: $text-secondary;
+        }
+      }
+
+      .connecting-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: rgba($accent-orange, 0.1);
+        border: 1px solid rgba($accent-orange, 0.3);
+        border-radius: $border-radius;
+        color: $accent-orange;
+        font-size: 12px;
+        font-weight: 500;
+      }
     }
   }
 
-  // Empty State
-  .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+  // List View Specific Styles
+  .servers-container.list .server-card {
+    .server-card-header {
+      .server-info {
+        .server-name-row {
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+
+          .server-name {
+            text-align: left;
+            flex: 1;
+          }
+
+          .server-status {
+            justify-content: flex-end;
+            flex-shrink: 0;
+          }
+        }
+
+        .server-connection-info {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 8px;
+
+          .connection-string {
+            margin-bottom: 0;
+            flex: 1;
+            text-align: left;
+          }
+
+          .server-badges {
+            margin-left: 16px;
+            justify-content: flex-end;
+          }
+        }
+
+        .server-description {
+          text-align: left;
+        }
+      }
+    }
+
+    .server-card-actions {
+      justify-content: flex-start;
+    }
+  }
+
+  // Resize Handle
+  .resize-handle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 4px;
     height: 100%;
-    padding: 40px;
-    text-align: center;
-    color: $text-muted;
+    background: transparent;
+    cursor: col-resize;
+    z-index: 10;
+    transition: background $transition-normal;
 
-    .empty-icon {
-      font-size: 48px;
-      margin-bottom: 16px;
-      opacity: 0.6;
+    &:hover {
+      background: rgba($accent-primary, 0.5);
     }
 
-    h3 {
-      margin: 0 0 8px 0;
-      color: $text-primary;
-      font-size: 18px;
-      font-weight: 600;
+    &:active {
+      background: $accent-primary;
     }
-
-    p {
-      margin: 0 0 24px 0;
-      font-size: 14px;
-      opacity: 0.8;
-    }
-
-         .clear-filters-btn,
-     .add-first-server-btn {
-       background: $accent-primary;
-       border: none;
-       color: $text-secondary;
-       padding: 10px 20px;
-       border-radius: $border-radius-small;
-       cursor: pointer;
-       font-size: 13px;
-       font-weight: 500;
-       transition: background-color $transition-normal;
-
-       &:hover {
-         background: darken($accent-primary, 8%);
-       }
-     }
-  }
-}
-
-// Servers Container
-.servers-container {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
-
-  &.grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 16px;
-  }
-
-  &.list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-}
-
-// Server Cards
-.server-card {
-  background: rgba($bg-secondary, 0.8);
-  border: 1px solid rgba($accent-primary, 0.08);
-  border-radius: $border-radius;
-  padding: 16px;
-  transition: border-color $transition-normal, background-color $transition-normal;
-  cursor: pointer;
-  position: relative;
-
-  &:hover {
-    background: rgba($bg-secondary, 0.9);
-    border-color: rgba($accent-primary, 0.2);
-  }
-
-  &.active {
-    background: rgba($accent-primary, 0.08);
-    border-color: $accent-primary;
 
     &::before {
       content: '';
       position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 2px;
+      height: 60px;
+      background: rgba($accent-primary, 0.3);
+      border-radius: 1px;
+      transition: all $transition-normal;
+      opacity: 0.6;
+    }
+
+    &:hover::before {
+      background: rgba($accent-primary, 0.8);
+      height: 80px;
       width: 3px;
-      background: $accent-primary;
-      border-radius: $border-radius 0 0 $border-radius;
-    }
-  }
-
-  &.connecting {
-    background: rgba($accent-orange, 0.06);
-    border-color: rgba($accent-orange, 0.2);
-  }
-
-  .server-card-header {
-    margin-bottom: 16px;
-
-    .server-info {
-      .server-name-row {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        margin-bottom: 12px;
-        gap: 12px;
-
-        .server-name {
-          margin: 0;
-          color: $text-primary;
-          font-size: 16px;
-          font-weight: 600;
-          line-height: 1.3;
-          flex: 1;
-        }
-
-        .server-status {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          flex-shrink: 0;
-
-          svg {
-            &.connected {
-              color: $accent-green;
-            }
-            &.connecting {
-              color: $accent-orange;
-            }
-            &.disconnected {
-              color: $text-muted;
-            }
-          }
-
-          .status-text {
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-
-            &.connected {
-              color: $accent-green;
-            }
-            &.connecting {
-              color: $accent-orange;
-            }
-            &.disconnected {
-              color: $text-muted;
-            }
-          }
-        }
-      }
-
-      .server-connection-info {
-        margin-bottom: 12px;
-
-        .connection-string {
-          display: block;
-          color: $text-primary;
-          font-family: $font-mono;
-          font-size: 13px;
-          font-weight: 500;
-          margin-bottom: 8px;
-          padding: 6px 10px;
-          background: rgba($bg-tertiary, 0.4);
-          border-radius: $border-radius-small;
-          border-left: 3px solid $accent-primary;
-        }
-
-        .server-badges {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-
-          .category-badge,
-          .auth-badge {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 11px;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-weight: 600;
-            text-transform: capitalize;
-            white-space: nowrap;
-          }
-
-          .category-badge {
-            background: rgba($accent-blue, 0.2);
-            color: $accent-blue;
-            border: 1px solid rgba($accent-blue, 0.3);
-          }
-
-          .auth-badge {
-            &.password {
-              background: rgba($accent-orange, 0.2);
-              color: $accent-orange;
-              border: 1px solid rgba($accent-orange, 0.3);
-            }
-
-            &.privateKey {
-              background: rgba($accent-green, 0.2);
-              color: $accent-green;
-              border: 1px solid rgba($accent-green, 0.3);
-            }
-          }
-        }
-      }
-
-      .server-description {
-        margin: 0;
-        color: $text-muted;
-        font-size: 12px;
-        line-height: 1.4;
-        padding: 8px 12px;
-        background: rgba($bg-tertiary, 0.3);
-        border-radius: $border-radius-small;
-        border-left: 2px solid rgba($accent-primary, 0.3);
-      }
-    }
-  }
-
-  .server-card-actions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    justify-content: flex-end;
-    padding-top: 16px;
-    border-top: 1px solid rgba($accent-primary, 0.1);
-
-    .action-btn {
-      background: rgba($bg-primary, 0.9);
-      border: 1px solid rgba($accent-primary, 0.15);
-      color: $text-muted;
-      padding: 6px 10px;
-      border-radius: $border-radius-small;
-      cursor: pointer;
-      font-size: 11px;
-      font-weight: 500;
-      transition: background-color $transition-normal, color $transition-normal, border-color $transition-normal;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      min-height: 28px;
-
-      &.connect:hover {
-        background: $accent-primary;
-        border-color: $accent-primary;
-        color: $text-secondary;
-      }
-
-      &.disconnect:hover {
-        background: $accent-red;
-        border-color: $accent-red;
-        color: $text-secondary;
-      }
-
-      &.edit:hover {
-        background: $accent-blue;
-        border-color: $accent-blue;
-        color: $text-secondary;
-      }
-
-      &.delete:hover {
-        background: $accent-red;
-        border-color: $accent-red;
-        color: $text-secondary;
-      }
-    }
-
-    .connecting-indicator {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      background: rgba($accent-orange, 0.1);
-      border: 1px solid rgba($accent-orange, 0.3);
-      border-radius: $border-radius;
-      color: $accent-orange;
-      font-size: 12px;
-      font-weight: 500;
+      opacity: 1;
     }
   }
 }
 
-// List View Specific Styles
-.servers-container.list .server-card {
-  .server-card-header {
-    .server-info {
-      .server-name-row {
-        align-items: center;
-      }
-
-      .server-connection-info {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 8px;
-
-        .connection-string {
-          margin-bottom: 0;
-          flex: 1;
-        }
-
-        .server-badges {
-          margin-left: 16px;
-        }
-      }
-    }
-  }
-
-  .server-card-actions {
-    justify-content: flex-start;
-  }
-}
-
-// Modal Styles
+// Modal Styles - scoped outside server-manager to avoid conflicts
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1030,48 +1134,6 @@
   }
 }
 
-// Resize Handle
-.resize-handle {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 4px;
-  height: 100%;
-  background: transparent;
-  cursor: col-resize;
-  z-index: 10;
-  transition: background $transition-normal;
-
-  &:hover {
-    background: rgba($accent-primary, 0.5);
-  }
-
-  &:active {
-    background: $accent-primary;
-  }
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 2px;
-    height: 60px;
-    background: rgba($accent-primary, 0.3);
-    border-radius: 1px;
-    transition: all $transition-normal;
-    opacity: 0.6;
-  }
-
-  &:hover::before {
-    background: rgba($accent-primary, 0.8);
-    height: 80px;
-    width: 3px;
-    opacity: 1;
-  }
-}
-
 // Sidebar Overlay
 .sidebar-overlay {
   position: fixed;
@@ -1086,8 +1148,29 @@
 }
 
 // Scrollbar Styling
-.manager-sidebar,
-.servers-container,
+.server-manager {
+  .manager-sidebar,
+  .servers-container {
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: rgba($bg-primary, 0.3);
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba($accent-primary, 0.4);
+      border-radius: 3px;
+
+      &:hover {
+        background: rgba($accent-primary, 0.6);
+      }
+    }
+  }
+}
+
 .server-form-modal {
   &::-webkit-scrollbar {
     width: 6px;
