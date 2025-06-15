@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import serverService, { Server } from '../services/serverService'
 import './ServerSidebar.scss'
 
@@ -9,6 +9,9 @@ interface ServerSidebarProps {
   connectedServerId?: string
 }
 
+type ViewMode = 'grid' | 'list'
+type SortBy = 'name' | 'category' | 'host' | 'lastUsed'
+
 const ServerSidebar: React.FC<ServerSidebarProps> = ({ 
   isOpen, 
   onToggle, 
@@ -16,12 +19,19 @@ const ServerSidebar: React.FC<ServerSidebarProps> = ({
   connectedServerId 
 }) => {
   const [servers, setServers] = useState<Server[]>([])
+  const [filteredServers, setFilteredServers] = useState<Server[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [viewMode, setViewMode] = useState<ViewMode>('grid')
+  const [sortBy, setSortBy] = useState<SortBy>('name')
   const [showAddForm, setShowAddForm] = useState(false)
+  const [editingServer, setEditingServer] = useState<Server | null>(null)
   const [loading, setLoading] = useState(true)
-  const [sidebarWidth, setSidebarWidth] = useState(420)
-  const [isResizing, setIsResizing] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
-  const [newServer, setNewServer] = useState({
+  const [sidebarWidth, setSidebarWidth] = useState(800)
+  const [isResizing, setIsResizing] = useState(false)
+  
+  const [serverForm, setServerForm] = useState({
     name: '',
     host: '',
     port: 22,
@@ -30,86 +40,168 @@ const ServerSidebar: React.FC<ServerSidebarProps> = ({
     password: '',
     privateKeyPath: '',
     description: '',
-    category: 'default'
+    category: 'development'
   })
 
   const categories = [
-    { value: 'default', label: 'Default' },
-    { value: 'production', label: 'Production' },
-    { value: 'development', label: 'Development' },
-    { value: 'staging', label: 'Staging' },
-    { value: 'testing', label: 'Testing' }
+    { value: 'all', label: 'All Servers', icon: '🌐', count: 0 },
+    { value: 'production', label: 'Production', icon: '🔴', count: 0 },
+    { value: 'development', label: 'Development', icon: '🟢', count: 0 },
+    { value: 'staging', label: 'Staging', icon: '🟡', count: 0 },
+    { value: 'testing', label: 'Testing', icon: '🟣', count: 0 },
+    { value: 'database', label: 'Database', icon: '🗄️', count: 0 },
+    { value: 'web', label: 'Web Servers', icon: '🌍', count: 0 },
+    { value: 'api', label: 'API Servers', icon: '⚡', count: 0 },
+    { value: 'monitoring', label: 'Monitoring', icon: '📊', count: 0 }
   ]
 
-  // Charger les serveurs au montage du composant
+  // Load servers on component mount
   useEffect(() => {
     loadServers()
   }, [])
+
+  // Update filtered servers when search, category, or servers change
+  useEffect(() => {
+    filterAndSortServers()
+  }, [servers, searchQuery, selectedCategory, sortBy])
 
   const loadServers = async () => {
     try {
       setLoading(true)
       const loadedServers = await serverService.loadServers()
       setServers(loadedServers)
-      console.log('Servers loaded in component:', loadedServers)
     } catch (error) {
-      console.error('Error loading servers in component:', error)
+      console.error('Error loading servers:', error)
       setServers([])
     } finally {
       setLoading(false)
     }
   }
 
+  const filterAndSortServers = () => {
+    let filtered = [...servers]
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(server => 
+        server.name.toLowerCase().includes(query) ||
+        server.host.toLowerCase().includes(query) ||
+        server.username.toLowerCase().includes(query) ||
+        server.description?.toLowerCase().includes(query) ||
+        server.category.toLowerCase().includes(query)
+      )
+    }
+
+    // Filter by category
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(server => server.category === selectedCategory)
+    }
+
+    // Sort servers
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name)
+        case 'category':
+          return a.category.localeCompare(b.category)
+        case 'host':
+          return a.host.localeCompare(b.host)
+        case 'lastUsed':
+          // For now, sort by status (connected first)
+          if (a.status === 'connected' && b.status !== 'connected') return -1
+          if (b.status === 'connected' && a.status !== 'connected') return 1
+          return a.name.localeCompare(b.name)
+        default:
+          return 0
+      }
+    })
+
+    setFilteredServers(filtered)
+  }
+
+  const categoriesWithCounts = useMemo(() => {
+    return categories.map(category => ({
+      ...category,
+      count: category.value === 'all' 
+        ? servers.length 
+        : servers.filter(s => s.category === category.value).length
+    }))
+  }, [servers])
+
+  const resetForm = () => {
+    setServerForm({
+      name: '',
+      host: '',
+      port: 22,
+      username: '',
+      authType: 'password',
+      password: '',
+      privateKeyPath: '',
+      description: '',
+      category: 'development'
+    })
+  }
+
   const handleAddServer = async () => {
-    if (newServer.name && newServer.host && newServer.username) {
+    if (serverForm.name && serverForm.host && serverForm.username) {
       try {
-        const addedServer = await serverService.addServer(newServer)
-        setServers(serverService.getAllServers())
-        setNewServer({ 
-          name: '', 
-          host: '', 
-          port: 22, 
-          username: '', 
-          authType: 'password',
-          password: '',
-          privateKeyPath: '',
-          description: '',
-          category: 'default'
-        })
+        await serverService.addServer(serverForm)
+        await loadServers()
+        resetForm()
         setShowAddForm(false)
-        console.log('Server added successfully:', addedServer)
       } catch (error) {
         console.error('Error adding server:', error)
       }
     }
   }
 
+  const handleEditServer = (server: Server) => {
+    setServerForm({
+      name: server.name,
+      host: server.host,
+      port: server.port,
+      username: server.username,
+      authType: server.authType,
+      password: server.password || '',
+      privateKeyPath: server.privateKeyPath || '',
+      description: server.description || '',
+      category: server.category
+    })
+    setEditingServer(server)
+    setShowAddForm(true)
+  }
+
+  const handleUpdateServer = async () => {
+    if (editingServer && serverForm.name && serverForm.host && serverForm.username) {
+      try {
+        await serverService.updateServer(editingServer.id, serverForm)
+        await loadServers()
+        resetForm()
+        setEditingServer(null)
+        setShowAddForm(false)
+      } catch (error) {
+        console.error('Error updating server:', error)
+      }
+    }
+  }
+
   const handleDeleteServer = async (id: string) => {
     try {
-      const success = await serverService.deleteServer(id)
-      if (success) {
-        setServers(serverService.getAllServers())
-        console.log('Server deleted successfully')
-      }
+      await serverService.deleteServer(id)
+      await loadServers()
     } catch (error) {
       console.error('Error deleting server:', error)
     }
     setShowDeleteConfirm(null)
   }
 
-  const confirmDeleteServer = (id: string, serverName: string) => {
-    setShowDeleteConfirm(id)
-  }
-
   const handleConnect = (server: Server) => {
-    // Update server status to connecting
     serverService.updateServerStatus(server.id, 'connecting')
     setServers([...serverService.getAllServers()])
     
-    // Simulate connection
     setTimeout(() => {
       serverService.updateServerStatus(server.id, 'connected')
-      // Disconnect all other servers
       servers.forEach(s => {
         if (s.id !== server.id) {
           serverService.updateServerStatus(s.id, 'disconnected')
@@ -125,16 +217,6 @@ const ServerSidebar: React.FC<ServerSidebarProps> = ({
     setServers([...serverService.getAllServers()])
   }
 
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'production': return '#f44336'
-      case 'development': return '#4caf50'
-      case 'staging': return '#ff9800'
-      case 'testing': return '#9c27b0'
-      default: return '#2196f3'
-    }
-  }
-
   // Handle sidebar resizing
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsResizing(true)
@@ -142,7 +224,7 @@ const ServerSidebar: React.FC<ServerSidebarProps> = ({
     const startWidth = sidebarWidth
 
     const handleMouseMove = (e: MouseEvent) => {
-      const newWidth = Math.max(320, Math.min(600, startWidth + (e.clientX - startX)))
+      const newWidth = Math.max(600, Math.min(1200, startWidth + (e.clientX - startX)))
       setSidebarWidth(newWidth)
     }
 
@@ -157,392 +239,475 @@ const ServerSidebar: React.FC<ServerSidebarProps> = ({
     e.preventDefault()
   }
 
-  // Empêcher la propagation des événements pour éviter les problèmes de focus
-  const handleFormClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'connected':
+        return <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><circle cx="6" cy="6" r="6"/></svg>
+      case 'connecting':
+        return <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><circle cx="6" cy="6" r="4" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="8" strokeLinecap="round"><animateTransform attributeName="transform" type="rotate" values="0 6 6;360 6 6" dur="1s" repeatCount="indefinite"/></circle></svg>
+      default:
+        return <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><circle cx="6" cy="6" r="6" opacity="0.3"/></svg>
+    }
   }
 
-  const handleInputFocus = (e: React.FocusEvent) => {
-    e.stopPropagation()
+  const getCategoryIcon = (category: string) => {
+    const cat = categories.find(c => c.value === category)
+    return cat?.icon || '📁'
   }
 
-  if (loading) {
-    return (
-      <>
-        <div className={`server-sidebar ${isOpen ? 'open' : ''}`}>
-          <div className="sidebar-header">
-            <h3>Serveurs SSH</h3>
-          </div>
-          <div className="loading-state">
-            <p>Loading servers...</p>
-          </div>
-        </div>
-        {isOpen && <div className="sidebar-overlay" onClick={onToggle}></div>}
-      </>
-    )
-  }
+  if (!isOpen) return null
 
   return (
     <>
-      {/* Sidebar */}
       <div 
-        className={`server-sidebar ${isOpen ? 'open' : ''} ${isResizing ? 'resizing' : ''}`}
+        className={`server-manager ${isResizing ? 'resizing' : ''}`}
         style={{ 
           width: `${sidebarWidth}px`,
           '--sidebar-width': `${sidebarWidth}px`
         } as React.CSSProperties}
       >
-        <div className="sidebar-header">
-          <h3>SSH Servers</h3>
-          <div className="header-buttons">
-            <button 
-              className="folder-btn"
-              onClick={() => window.electronAPI?.openServersFolder()}
-              title="Ouvrir le dossier des serveurs"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z"/>
+        {/* Header */}
+        <div className="manager-header">
+          <div className="header-left">
+            <button className="close-btn" onClick={onToggle} title="Close Server Manager">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M12.854 4.854a.5.5 0 0 0-.708-.708L8 8.293 3.854 4.146a.5.5 0 1 0-.708.708L7.293 9l-4.147 4.146a.5.5 0 0 0 .708.708L8 9.707l4.146 4.147a.5.5 0 0 0 .708-.708L8.707 9l4.147-4.146z"/>
               </svg>
             </button>
+            <div className="header-title">
+              <h1>Server Manager</h1>
+              <span className="server-count">{servers.length} servers configured</span>
+            </div>
+          </div>
+          
+          <div className="header-actions">
+            <div className="view-controls">
+              <button 
+                className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                onClick={() => setViewMode('grid')}
+                title="Grid View"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3A1.5 1.5 0 0 1 15 10.5v3A1.5 1.5 0 0 1 13.5 15h-3A1.5 1.5 0 0 1 9 13.5v-3z"/>
+                </svg>
+              </button>
+              <button 
+                className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+                onClick={() => setViewMode('list')}
+                title="List View"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"/>
+                </svg>
+              </button>
+            </div>
+            
             <button 
-              className="add-server-btn"
-              onClick={() => setShowAddForm(true)}
-              title="Ajouter un serveur"
+              className="add-server-btn primary"
+              onClick={() => {
+                resetForm()
+                setEditingServer(null)
+                setShowAddForm(true)
+              }}
             >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-                <path d="M7 0v14M0 7h14" stroke="currentColor" strokeWidth="2"/>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
               </svg>
+              Add Server
             </button>
           </div>
         </div>
 
-        {/* Add Server Form */}
-        {showAddForm && (
-          <div className="add-server-form" onClick={handleFormClick}>
-            <div className="form-section">
-              <h4>General Information</h4>
-              
-              <div className="form-group">
-                <label>Server Name</label>
+        <div className="manager-content">
+          {/* Sidebar */}
+          <div className="manager-sidebar">
+            {/* Search */}
+            <div className="search-section">
+              <div className="search-input-wrapper">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" className="search-icon">
+                  <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                </svg>
                 <input
                   type="text"
-                  placeholder="My server"
-                  value={newServer.name}
-                  onChange={(e) => setNewServer(prev => ({ ...prev, name: e.target.value }))}
-                  onFocus={handleInputFocus}
-                  onClick={handleFormClick}
+                  placeholder="Search servers..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="search-input"
                 />
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Host</label>
-                  <input
-                    type="text"
-                    placeholder="hostname or IP"
-                    value={newServer.host}
-                    onChange={(e) => setNewServer(prev => ({ ...prev, host: e.target.value }))}
-                    onFocus={handleInputFocus}
-                    onClick={handleFormClick}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Port</label>
-                  <input
-                    type="number"
-                    placeholder="22"
-                    value={newServer.port}
-                    onChange={(e) => setNewServer(prev => ({ ...prev, port: parseInt(e.target.value) || 22 }))}
-                    onFocus={handleInputFocus}
-                    onClick={handleFormClick}
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Username</label>
-                <input
-                  type="text"
-                  placeholder="username"
-                  value={newServer.username}
-                  onChange={(e) => setNewServer(prev => ({ ...prev, username: e.target.value }))}
-                  onFocus={handleInputFocus}
-                  onClick={handleFormClick}
-                />
+                {searchQuery && (
+                  <button 
+                    className="clear-search"
+                    onClick={() => setSearchQuery('')}
+                    title="Clear search"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                      <path d="M7 0C3.134 0 0 3.134 0 7s3.134 7 7 7 7-3.134 7-7-3.134-7-7-7zm3.5 9.5L9.5 10.5 7 8 4.5 10.5 3.5 9.5 6 7 3.5 4.5 4.5 3.5 7 6 9.5 3.5 10.5 4.5 8 7l2.5 2.5z"/>
+                    </svg>
+                  </button>
+                )}
               </div>
             </div>
 
-            <div className="form-section">
-              <h4>Authentication</h4>
-              
-              <div className="auth-tabs">
-                <button 
-                  className={`auth-tab ${newServer.authType === 'password' ? 'active' : ''}`}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setNewServer(prev => ({ ...prev, authType: 'password' }))
-                  }}
-                >
-                  Password
-                </button>
-                <button 
-                  className={`auth-tab ${newServer.authType === 'privateKey' ? 'active' : ''}`}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setNewServer(prev => ({ ...prev, authType: 'privateKey' }))
-                  }}
-                >
-                  Private Key
-                </button>
-              </div>
-
-              {newServer.authType === 'password' ? (
-                <div className="form-group">
-                  <label>Password</label>
-                  <input
-                    type="password"
-                    placeholder="Password"
-                    value={newServer.password}
-                    onChange={(e) => setNewServer(prev => ({ ...prev, password: e.target.value }))}
-                    onFocus={handleInputFocus}
-                    onClick={handleFormClick}
-                  />
-                </div>
-              ) : (
-                <div className="form-group">
-                  <label>Private Key Path</label>
-                  <input
-                    type="text"
-                    placeholder="~/.ssh/id_rsa"
-                    value={newServer.privateKeyPath}
-                    onChange={(e) => setNewServer(prev => ({ ...prev, privateKeyPath: e.target.value }))}
-                    onFocus={handleInputFocus}
-                    onClick={handleFormClick}
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="form-section">
-              <h4>Configuration</h4>
-              
-              <div className="form-group">
-                <label>Category</label>
-                <select 
-                  value={newServer.category}
-                  onChange={(e) => setNewServer(prev => ({ ...prev, category: e.target.value }))}
-                  onFocus={handleInputFocus}
-                  onClick={handleFormClick}
-                >
-                  {categories.map(cat => (
-                    <option key={cat.value} value={cat.value}>{cat.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Description</label>
-                <textarea
-                  placeholder="Server description..."
-                  value={newServer.description}
-                  onChange={(e) => setNewServer(prev => ({ ...prev, description: e.target.value }))}
-                  onFocus={handleInputFocus}
-                  onClick={handleFormClick}
-                  rows={3}
-                />
+            {/* Categories */}
+            <div className="categories-section">
+              <h3>Categories</h3>
+              <div className="category-list">
+                {categoriesWithCounts.map(category => (
+                  <button
+                    key={category.value}
+                    className={`category-item ${selectedCategory === category.value ? 'active' : ''}`}
+                    onClick={() => setSelectedCategory(category.value)}
+                  >
+                    <span className="category-icon">{category.icon}</span>
+                    <span className="category-label">{category.label}</span>
+                    <span className="category-count">{category.count}</span>
+                  </button>
+                ))}
               </div>
             </div>
 
-            <div className="form-actions">
-              <button 
-                className="btn-save" 
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleAddServer()
-                }}
+            {/* Sort Options */}
+            <div className="sort-section">
+              <h3>Sort By</h3>
+              <select 
+                value={sortBy} 
+                onChange={(e) => setSortBy(e.target.value as SortBy)}
+                className="sort-select"
               >
-                Save and Connect
-              </button>
-              <button 
-                className="btn-secondary" 
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleAddServer()
-                }}
-              >
-                Save
-              </button>
-              <button 
-                className="btn-cancel" 
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setShowAddForm(false)
-                }}
-              >
-                Cancel
-              </button>
+                <option value="name">Name</option>
+                <option value="category">Category</option>
+                <option value="host">Host</option>
+                <option value="lastUsed">Last Used</option>
+              </select>
             </div>
           </div>
-        )}
 
-        {/* Server List */}
-        <div className="server-list">
-          {servers.map(server => (
-            <div 
-              key={server.id} 
-              className={`server-item ${server.status} ${connectedServerId === server.id ? 'active' : ''}`}
-            >
-              <div className="server-content">
-                <div className="server-info">
-                  <div className="server-header">
-                    <div className="server-name">{server.name}</div>
-                    <div className="server-badges">
-                      <div 
-                        className="server-category"
-                        style={{ backgroundColor: getCategoryColor(server.category) }}
-                      >
-                        {server.category}
-                      </div>
-                      <div className={`auth-badge ${server.authType}`}>
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-                          {server.authType === 'password' ? (
-                            <path d="M3 5V4c0-1.1.9-2 2-2h2c1.1 0 2 .9 2 2v1h.5c.3 0 .5.2.5.5v4c0 .3-.2.5-.5.5h-5c-.3 0-.5-.2-.5-.5v-4c0-.3.2-.5.5-.5H3zm1-1v1h4V4c0-.6-.4-1-1-1H5c-.6 0-1 .4-1 1z"/>
-                          ) : (
-                            <path d="M1 3l10 3-10 3V7l6-2L1 5V3z"/>
-                          )}
-                        </svg>
-                        {server.authType === 'password' ? 'PWD' : 'SSH'}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="server-connection">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" className="connection-icon">
-                      <path d="M3 3h8v2H9v2H5V5H3V3zM1 7h2v4h8V7h2v6H1V7z"/>
-                    </svg>
-                    <span className="connection-text">{server.username}@{server.host}</span>
-                    <span className="port-badge">:{server.port}</span>
-                  </div>
-                  
-                  {server.description && (
-                    <div className="server-description">
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" className="description-icon">
-                        <path d="M6 0C2.7 0 0 2.7 0 6s2.7 6 6 6 6-2.7 6-6S9.3 0 6 0zM5 3h2v2H5V3zM5 7h2v2H5V7z"/>
-                      </svg>
-                      {server.description}
-                    </div>
-                  )}
-                  
-                  <div className="server-meta">
-                    <div className="status-info">
-                      <span className={`status-text ${server.status}`}>
-                        {server.status === 'connected' ? 'Connected' : 
-                         server.status === 'connecting' ? 'Connecting...' : 'Disconnected'}
-                      </span>
-                    </div>
-                    <div className="auth-info">
-                      <span className="auth-label">Auth:</span>
-                      <span className={`auth-type ${server.authType}`}>
-                        {server.authType === 'password' ? 'Password' : 'Private Key'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="server-status">
-                  <div className={`status-dot ${server.status}`}></div>
-                </div>
-              </div>
-
-              <div className="server-actions">
-                {server.status === 'disconnected' && (
-                  <button 
-                    className="btn-connect"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleConnect(server)
-                    }}
-                    title="Connect to server"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,16.5L6.5,12L11,7.5V10.5H16V13.5H11V16.5Z"/>
-                    </svg>
-                    <span>Connect</span>
-                  </button>
-                )}
-                
-                {server.status === 'connected' && (
-                  <button 
-                    className="btn-disconnect"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDisconnect(server)
-                    }}
-                    title="Disconnect from server"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M13,16.5L17.5,12L13,7.5V10.5H8V13.5H13V16.5Z"/>
-                    </svg>
-                    <span>Disconnect</span>
-                  </button>
-                )}
-
-                {server.status === 'connecting' && (
-                  <div className="connecting-status">
-                    <div className="connecting-spinner">
-                      <svg width="16" height="16" viewBox="0 0 24 24">
-                        <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="12" strokeLinecap="round">
-                          <animateTransform attributeName="transform" type="rotate" values="0 12 12;360 12 12" dur="1s" repeatCount="indefinite"/>
-                        </circle>
-                      </svg>
-                    </div>
-                    <span>Connecting...</span>
-                  </div>
-                )}
-
-                <button 
-                  className="btn-delete"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    confirmDeleteServer(server.id, server.name)
-                  }}
-                  title="Delete this server"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M7,6H17V19H7V6M9,8V17H11V8H9M13,8V17H15V8H13Z"/>
+          {/* Main Content */}
+          <div className="manager-main">
+            {loading ? (
+              <div className="loading-state">
+                <div className="loading-spinner">
+                  <svg width="32" height="32" viewBox="0 0 32 32">
+                    <circle cx="16" cy="16" r="12" fill="none" stroke="currentColor" strokeWidth="3" strokeDasharray="18" strokeLinecap="round">
+                      <animateTransform attributeName="transform" type="rotate" values="0 16 16;360 16 16" dur="1s" repeatCount="indefinite"/>
+                    </circle>
                   </svg>
-                  <span>Delete</span>
-                </button>
+                </div>
+                <p>Loading servers...</p>
               </div>
-            </div>
-          ))}
-        </div>
+            ) : filteredServers.length === 0 ? (
+              <div className="empty-state">
+                {searchQuery || selectedCategory !== 'all' ? (
+                  <>
+                    <div className="empty-icon">🔍</div>
+                    <h3>No servers found</h3>
+                    <p>Try adjusting your search or category filter</p>
+                    <button 
+                      className="clear-filters-btn"
+                      onClick={() => {
+                        setSearchQuery('')
+                        setSelectedCategory('all')
+                      }}
+                    >
+                      Clear Filters
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="empty-icon">🖥️</div>
+                    <h3>No servers configured</h3>
+                    <p>Add your first server to get started</p>
+                    <button 
+                      className="add-first-server-btn"
+                      onClick={() => {
+                        resetForm()
+                        setEditingServer(null)
+                        setShowAddForm(true)
+                      }}
+                    >
+                      Add Server
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className={`servers-container ${viewMode}`}>
+                {filteredServers.map(server => (
+                  <div 
+                    key={server.id} 
+                    className={`server-card ${server.status} ${connectedServerId === server.id ? 'active' : ''}`}
+                  >
+                    <div className="server-card-header">
+                      <div className="server-info">
+                        <div className="server-name-row">
+                          <h4 className="server-name">{server.name}</h4>
+                          <div className="server-status">
+                            {getStatusIcon(server.status)}
+                            <span className={`status-text ${server.status}`}>
+                              {server.status === 'connected' ? 'Connected' : 
+                               server.status === 'connecting' ? 'Connecting...' : 'Disconnected'}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="server-connection-info">
+                          <span className="connection-string">
+                            {server.username}@{server.host}:{server.port}
+                          </span>
+                          <div className="server-badges">
+                            <span className="category-badge">
+                              {getCategoryIcon(server.category)} {server.category}
+                            </span>
+                            <span className={`auth-badge ${server.authType}`}>
+                              {server.authType === 'password' ? '🔑' : '🗝️'} 
+                              {server.authType === 'password' ? 'Password' : 'SSH Key'}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {server.description && (
+                          <p className="server-description">{server.description}</p>
+                        )}
+                      </div>
+                    </div>
 
-        {servers.length === 0 && !loading && (
-          <div className="empty-state">
-            <p>No servers configured</p>
-            <button onClick={() => setShowAddForm(true)}>
-              Add your first server
-            </button>
+                    <div className="server-card-actions">
+                      {server.status === 'disconnected' && (
+                        <button 
+                          className="action-btn connect"
+                          onClick={() => handleConnect(server)}
+                          title="Connect to server"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zM4.5 7.5a.5.5 0 0 0 0 1h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H4.5z"/>
+                          </svg>
+                          Connect
+                        </button>
+                      )}
+                      
+                      {server.status === 'connected' && (
+                        <button 
+                          className="action-btn disconnect"
+                          onClick={() => handleDisconnect(server)}
+                          title="Disconnect from server"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zM11.5 7.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5z"/>
+                          </svg>
+                          Disconnect
+                        </button>
+                      )}
+
+                      {server.status === 'connecting' && (
+                        <div className="connecting-indicator">
+                          <svg width="16" height="16" viewBox="0 0 16 16">
+                            <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="12" strokeLinecap="round">
+                              <animateTransform attributeName="transform" type="rotate" values="0 8 8;360 8 8" dur="1s" repeatCount="indefinite"/>
+                            </circle>
+                          </svg>
+                          Connecting...
+                        </div>
+                      )}
+
+                      <button 
+                        className="action-btn edit"
+                        onClick={() => handleEditServer(server)}
+                        title="Edit server"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                          <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708L10.5 8.207l-3-3L12.146.146zM11.207 9l-3-3L2.5 11.707V14.5a.5.5 0 0 0 .5.5h2.793L11.207 9zM1 11.5a.5.5 0 0 1 .5-.5H2v-.5a.5.5 0 0 1 .5-.5H3v-.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5H1.5a.5.5 0 0 1-.5-.5v-1z"/>
+                        </svg>
+                        Edit
+                      </button>
+                      
+                      <button 
+                        className="action-btn delete"
+                        onClick={() => setShowDeleteConfirm(server.id)}
+                        title="Delete server"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                          <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                          <path fillRule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                        </svg>
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Resize Handle */}
         <div 
           className="resize-handle"
           onMouseDown={handleMouseDown}
-          title="Resize sidebar"
+          title="Resize panel"
         />
       </div>
 
+      {/* Add/Edit Server Modal */}
+      {showAddForm && (
+        <div className="modal-overlay" onClick={() => setShowAddForm(false)}>
+          <div className="server-form-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{editingServer ? 'Edit Server' : 'Add New Server'}</h2>
+              <button 
+                className="close-modal-btn"
+                onClick={() => setShowAddForm(false)}
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M12.854 4.854a.5.5 0 0 0-.708-.708L8 8.293 3.854 4.146a.5.5 0 1 0-.708.708L7.293 9l-4.147 4.146a.5.5 0 0 0 .708.708L8 9.707l4.146 4.147a.5.5 0 0 0 .708-.708L8.707 9l4.147-4.146z"/>
+                </svg>
+              </button>
+            </div>
+
+            <div className="modal-content">
+              <div className="form-section">
+                <h3>General Information</h3>
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label>Server Name *</label>
+                    <input
+                      type="text"
+                      placeholder="My Production Server"
+                      value={serverForm.name}
+                      onChange={(e) => setServerForm(prev => ({ ...prev, name: e.target.value }))}
+                    />
+                  </div>
+                  
+                  <div className="form-group">
+                    <label>Category</label>
+                    <select 
+                      value={serverForm.category}
+                      onChange={(e) => setServerForm(prev => ({ ...prev, category: e.target.value }))}
+                    >
+                      {categories.slice(1).map(cat => (
+                        <option key={cat.value} value={cat.value}>{cat.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label>Host/IP Address *</label>
+                    <input
+                      type="text"
+                      placeholder="192.168.1.100 or server.example.com"
+                      value={serverForm.host}
+                      onChange={(e) => setServerForm(prev => ({ ...prev, host: e.target.value }))}
+                    />
+                  </div>
+                  
+                  <div className="form-group">
+                    <label>Port</label>
+                    <input
+                      type="number"
+                      placeholder="22"
+                      value={serverForm.port}
+                      onChange={(e) => setServerForm(prev => ({ ...prev, port: parseInt(e.target.value) || 22 }))}
+                    />
+                  </div>
+                  
+                  <div className="form-group">
+                    <label>Username *</label>
+                    <input
+                      type="text"
+                      placeholder="root, ubuntu, admin..."
+                      value={serverForm.username}
+                      onChange={(e) => setServerForm(prev => ({ ...prev, username: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                
+                <div className="form-group full-width">
+                  <label>Description</label>
+                  <textarea
+                    placeholder="Optional description for this server..."
+                    value={serverForm.description}
+                    onChange={(e) => setServerForm(prev => ({ ...prev, description: e.target.value }))}
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              <div className="form-section">
+                <h3>Authentication</h3>
+                <div className="auth-tabs">
+                  <button 
+                    className={`auth-tab ${serverForm.authType === 'password' ? 'active' : ''}`}
+                    onClick={() => setServerForm(prev => ({ ...prev, authType: 'password' }))}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zM6 7v-.5A1.5 1.5 0 0 0 4.5 5h-1A1.5 1.5 0 0 0 2 6.5V7a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1z"/>
+                    </svg>
+                    Password Authentication
+                  </button>
+                  <button 
+                    className={`auth-tab ${serverForm.authType === 'privateKey' ? 'active' : ''}`}
+                    onClick={() => setServerForm(prev => ({ ...prev, authType: 'privateKey' }))}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M0 8a4 4 0 0 1 7.465-2H14a.5.5 0 0 1 .354.146l1.5 1.5a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0L13 9.207l-.646.647a.5.5 0 0 1-.708 0L11 9.207l-.646.647a.5.5 0 0 1-.708 0L9 9.207l-.646.647A.5.5 0 0 1 8 10h-.535A4 4 0 0 1 0 8zm4-3a3 3 0 1 0 2.712 4.285A.5.5 0 0 1 7.163 9h.63l.853-.854a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.793-.793-1-1h-6.63a.5.5 0 0 1-.451-.285A3 3 0 0 0 4 5z"/>
+                      <path d="M4 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                    </svg>
+                    SSH Key Authentication
+                  </button>
+                </div>
+
+                {serverForm.authType === 'password' ? (
+                  <div className="form-group">
+                    <label>Password *</label>
+                    <input
+                      type="password"
+                      placeholder="Enter password"
+                      value={serverForm.password}
+                      onChange={(e) => setServerForm(prev => ({ ...prev, password: e.target.value }))}
+                    />
+                  </div>
+                ) : (
+                  <div className="form-group">
+                    <label>Private Key Path *</label>
+                    <input
+                      type="text"
+                      placeholder="~/.ssh/id_rsa or /path/to/private/key"
+                      value={serverForm.privateKeyPath}
+                      onChange={(e) => setServerForm(prev => ({ ...prev, privateKeyPath: e.target.value }))}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button 
+                className="btn-cancel"
+                onClick={() => setShowAddForm(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn-save"
+                onClick={editingServer ? handleUpdateServer : handleAddServer}
+                disabled={!serverForm.name || !serverForm.host || !serverForm.username}
+              >
+                {editingServer ? 'Update Server' : 'Add Server'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="delete-confirm-overlay" onClick={() => setShowDeleteConfirm(null)}>
+        <div className="modal-overlay" onClick={() => setShowDeleteConfirm(null)}>
           <div className="delete-confirm-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="warning-icon">
-                <path d="M13,14H11V10H13M13,18H11V16H13M1,21H23L12,2L1,21Z"/>
-              </svg>
+              <div className="warning-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M13,14H11V10H13M13,18H11V16H13M1,21H23L12,2L1,21Z"/>
+                </svg>
+              </div>
               <h3>Confirm Deletion</h3>
             </div>
             <div className="modal-content">
@@ -551,22 +716,23 @@ const ServerSidebar: React.FC<ServerSidebarProps> = ({
                 <strong>{servers.find(s => s.id === showDeleteConfirm)?.name}</strong>?
               </p>
               <p className="warning-text">
-                This action is irreversible. All connection information will be lost.
+                This action cannot be undone. All connection information will be permanently lost.
               </p>
             </div>
             <div className="modal-actions">
               <button 
-                className="btn-cancel-delete"
+                className="btn-cancel"
                 onClick={() => setShowDeleteConfirm(null)}
               >
                 Cancel
               </button>
               <button 
-                className="btn-confirm-delete"
+                className="btn-delete"
                 onClick={() => handleDeleteServer(showDeleteConfirm)}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M7,6H17V19H7V6M9,8V17H11V8H9M13,8V17H15V8H13Z"/>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                  <path fillRule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
                 </svg>
                 Delete Permanently
               </button>
@@ -576,7 +742,7 @@ const ServerSidebar: React.FC<ServerSidebarProps> = ({
       )}
 
       {/* Overlay */}
-      {isOpen && <div className="sidebar-overlay" onClick={onToggle}></div>}
+      <div className="sidebar-overlay" onClick={onToggle}></div>
     </>
   )
 }
