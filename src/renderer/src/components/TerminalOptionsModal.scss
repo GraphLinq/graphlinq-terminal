@@ -1,0 +1,502 @@
+@import '../styles/variables';
+
+// Terminal Options Modal - Scoped styles
+.terminal-options-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba($bg-primary, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: $z-index-modal;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.terminal-options-modal {
+  background: linear-gradient(135deg, rgba($bg-secondary, 0.98) 0%, rgba($bg-primary, 0.98) 100%);
+  border: 1px solid rgba($accent-primary, 0.3);
+  border-radius: $border-radius-large;
+  width: 700px;
+  max-width: 90%;
+  max-height: 90vh;
+  box-shadow: 
+    0 20px 60px rgba($accent-primary, 0.3),
+    0 0 0 1px rgba($accent-primary, 0.1);
+  display: flex;
+  flex-direction: column;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+
+  .terminal-options-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba($accent-primary, 0.2);
+    background: linear-gradient(135deg, rgba($accent-primary, 0.08) 0%, rgba($accent-secondary, 0.08) 100%);
+
+    h2 {
+      margin: 0;
+      color: $text-primary;
+      font-size: 18px;
+      font-weight: 600;
+      background: linear-gradient(135deg, $accent-primary 0%, $accent-secondary 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+  }
+
+  .terminal-options-modal-close {
+    background: none;
+    border: none;
+    color: $text-muted;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 8px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: $border-radius;
+    transition: all $transition-normal;
+
+    &:hover {
+      color: $accent-primary;
+      background: rgba($accent-primary, 0.1);
+      transform: scale(1.1);
+    }
+  }
+
+  .terminal-options-modal-tabs {
+    display: flex;
+    border-bottom: 1px solid rgba($accent-primary, 0.2);
+
+    .terminal-options-tab {
+      padding: 16px 20px;
+      background: none;
+      border: none;
+      color: $text-muted;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      position: relative;
+      transition: all $transition-normal;
+
+      &.active {
+        color: $text-primary;
+
+        &::after {
+          content: '';
+          position: absolute;
+          bottom: -1px;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: linear-gradient(135deg, $accent-primary 0%, $accent-secondary 100%);
+        }
+      }
+
+      &:hover {
+        color: $accent-primary;
+        background: rgba($accent-primary, 0.05);
+      }
+    }
+  }
+
+  .terminal-options-modal-content {
+    padding: 24px;
+    overflow-y: auto;
+    max-height: 60vh;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: rgba($bg-secondary, 0.3);
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba($accent-primary, 0.3);
+      border-radius: 3px;
+
+      &:hover {
+        background: rgba($accent-primary, 0.5);
+      }
+    }
+
+    .terminal-options-section {
+      margin-bottom: 28px;
+
+      h3 {
+        margin-top: 0;
+        margin-bottom: 20px;
+        font-size: 16px;
+        color: $text-primary;
+        font-weight: 600;
+      }
+    }
+
+    .terminal-options-field {
+      margin-bottom: 20px;
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        color: $text-primary;
+        font-size: 14px;
+        font-weight: 500;
+
+        // Checkbox labels
+        &:has(input[type="checkbox"]) {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+        }
+      }
+
+      input,
+      select {
+        width: 100%;
+        padding: 12px 16px;
+        background: rgba($bg-primary, 0.6);
+        border: 1px solid rgba($accent-primary, 0.3);
+        border-radius: $border-radius;
+        color: $text-primary;
+        font-size: 14px;
+        font-family: inherit;
+        transition: all $transition-normal;
+
+        &:focus {
+          outline: none;
+          border-color: $accent-primary;
+          box-shadow: 0 0 0 3px rgba($accent-primary, 0.15);
+          background: rgba($bg-primary, 0.8);
+        }
+
+        &::placeholder {
+          color: $text-muted;
+        }
+      }
+
+      // Checkbox styling
+      input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        appearance: none;
+        background: rgba($bg-primary, 0.6);
+        border: 2px solid rgba($accent-primary, 0.3);
+        border-radius: $border-radius-small;
+        cursor: pointer;
+        transition: all $transition-normal;
+        position: relative;
+
+        &:checked {
+          background: linear-gradient(135deg, $accent-primary 0%, $accent-secondary 100%);
+          border-color: $accent-primary;
+
+          &::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: $text-secondary;
+            font-size: 12px;
+            font-weight: bold;
+          }
+        }
+
+        &:hover {
+          border-color: $accent-primary;
+          transform: scale(1.05);
+        }
+
+        &:focus {
+          outline: none;
+          box-shadow: 0 0 0 3px rgba($accent-primary, 0.15);
+        }
+      }
+
+      // Range inputs for font settings
+      input[type="range"] {
+        width: 100%;
+        height: 6px;
+        background: rgba($bg-primary, 0.6);
+        border-radius: 3px;
+        outline: none;
+        border: none;
+        cursor: pointer;
+        transition: all $transition-normal;
+
+        &::-webkit-slider-thumb {
+          appearance: none;
+          width: 18px;
+          height: 18px;
+          background: linear-gradient(135deg, $accent-primary 0%, $accent-secondary 100%);
+          border-radius: 50%;
+          cursor: pointer;
+          box-shadow: 0 2px 8px rgba($accent-primary, 0.4);
+          transition: all $transition-normal;
+
+          &:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 12px rgba($accent-primary, 0.6);
+          }
+        }
+
+        &::-moz-range-thumb {
+          width: 18px;
+          height: 18px;
+          background: linear-gradient(135deg, $accent-primary 0%, $accent-secondary 100%);
+          border-radius: 50%;
+          cursor: pointer;
+          border: none;
+          box-shadow: 0 2px 8px rgba($accent-primary, 0.4);
+          transition: all $transition-normal;
+
+          &:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 12px rgba($accent-primary, 0.6);
+          }
+        }
+
+        &::-webkit-slider-track {
+          background: rgba($accent-primary, 0.2);
+          border-radius: 3px;
+        }
+
+        &::-moz-range-track {
+          background: rgba($accent-primary, 0.2);
+          border-radius: 3px;
+          border: none;
+        }
+
+        &:focus {
+          &::-webkit-slider-thumb {
+            box-shadow: 0 0 0 3px rgba($accent-primary, 0.15), 0 2px 8px rgba($accent-primary, 0.4);
+          }
+
+          &::-moz-range-thumb {
+            box-shadow: 0 0 0 3px rgba($accent-primary, 0.15), 0 2px 8px rgba($accent-primary, 0.4);
+          }
+        }
+      }
+
+      .range-value {
+        display: inline-block;
+        margin-left: 12px;
+        padding: 4px 8px;
+        background: rgba($accent-primary, 0.1);
+        border: 1px solid rgba($accent-primary, 0.3);
+        border-radius: $border-radius-small;
+        color: $accent-primary;
+        font-size: 12px;
+        font-weight: 600;
+        min-width: 40px;
+        text-align: center;
+      }
+    }
+
+    // Color Grid for Terminal Options
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-top: 16px;
+
+      .color-field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+
+        label {
+          font-size: 13px;
+          font-weight: 600;
+          color: $text-primary;
+          margin-bottom: 4px;
+        }
+
+        .color-input-group {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+
+          input[type="color"] {
+            width: 40px;
+            height: 40px;
+            border: 2px solid rgba($accent-primary, 0.3);
+            border-radius: $border-radius;
+            background: none;
+            cursor: pointer;
+            transition: all $transition-normal;
+            padding: 0;
+
+            &::-webkit-color-swatch-wrapper {
+              padding: 0;
+              border-radius: calc($border-radius - 2px);
+            }
+
+            &::-webkit-color-swatch {
+              border: none;
+              border-radius: calc($border-radius - 2px);
+            }
+
+            &:hover {
+              border-color: $accent-primary;
+              transform: scale(1.05);
+              box-shadow: 0 4px 12px rgba($accent-primary, 0.3);
+            }
+
+            &:focus {
+              outline: none;
+              border-color: $accent-primary;
+              box-shadow: 0 0 0 3px rgba($accent-primary, 0.15);
+            }
+          }
+
+          input[type="text"] {
+            flex: 1;
+            padding: 10px 12px;
+            background: rgba($bg-primary, 0.6);
+            border: 1px solid rgba($accent-primary, 0.3);
+            border-radius: $border-radius;
+            color: $text-primary;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+            transition: all $transition-normal;
+
+            &:focus {
+              outline: none;
+              border-color: $accent-primary;
+              box-shadow: 0 0 0 3px rgba($accent-primary, 0.15);
+              background: rgba($bg-primary, 0.8);
+            }
+
+            &::placeholder {
+              color: $text-muted;
+              font-style: italic;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .terminal-options-modal-footer {
+    padding: 20px 24px;
+    border-top: 1px solid rgba($accent-primary, 0.2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, rgba($accent-primary, 0.03) 0%, rgba($accent-secondary, 0.03) 100%);
+
+    .footer-buttons {
+      display: flex;
+      gap: 12px;
+    }
+
+    button {
+      padding: 12px 20px;
+      border-radius: $border-radius;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all $transition-normal;
+    }
+
+    .terminal-options-reset {
+      background: rgba($text-muted, 0.1);
+      border: 1px solid rgba($text-muted, 0.3);
+      color: $text-muted;
+
+      &:hover {
+        background: rgba($text-muted, 0.2);
+        color: $text-primary;
+        border-color: rgba($text-muted, 0.5);
+        transform: translateY(-1px);
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+    }
+
+    .terminal-options-cancel {
+      background-color: transparent;
+      border: 1px solid rgba($accent-primary, 0.3);
+      color: $text-muted;
+
+      &:hover {
+        background: rgba($accent-primary, 0.1);
+        color: $text-primary;
+        border-color: rgba($accent-primary, 0.5);
+      }
+    }
+
+    .terminal-options-save {
+      background: linear-gradient(135deg, $accent-primary 0%, $accent-secondary 100%);
+      border: 1px solid $accent-primary;
+      color: $text-secondary;
+      box-shadow: 0 4px 12px rgba($accent-primary, 0.3);
+
+      &:hover {
+        background: linear-gradient(135deg, darken($accent-primary, 5%) 0%, darken($accent-secondary, 5%) 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba($accent-primary, 0.4);
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: $breakpoint-mobile) {
+  .terminal-options-modal {
+    width: 95%;
+    margin: 16px;
+
+    .terminal-options-modal-content {
+      .color-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+
+        .color-field .color-input-group {
+          input[type="color"] {
+            width: 36px;
+            height: 36px;
+          }
+
+          input[type="text"] {
+            font-size: 12px;
+          }
+        }
+      }
+    }
+
+    .terminal-options-modal-footer {
+      flex-direction: column;
+      gap: 12px;
+
+      .footer-buttons {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .terminal-options-reset {
+        width: 100%;
+      }
+    }
+  }
+} 
