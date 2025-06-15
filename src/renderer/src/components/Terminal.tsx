@@ -89,22 +89,6 @@ const Terminal: React.FC<TerminalProps> = ({ sessionId, isConnected, onDisconnec
     terminal.onData((data) => {
       if (!isConnected || !sessionId) return
 
-             // Intercept editor commands before sending to SSH
-       if (data === '\r') {
-         const currentLine = getCurrentCommandLine(terminal)
-         if (currentLine) {
-           handleEditorCommand(currentLine).then((intercepted) => {
-             if (!intercepted) {
-               // Send data to SSH session if not intercepted
-               if (window.electronAPI?.sshWrite) {
-                 window.electronAPI.sshWrite(sessionId, data)
-               }
-             }
-           })
-           return // Don't send immediately, wait for async check
-         }
-       }
-
       // Send data to SSH session
       if (window.electronAPI?.sshWrite) {
         window.electronAPI.sshWrite(sessionId, data)
