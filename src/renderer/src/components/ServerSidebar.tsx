@@ -7,6 +7,7 @@ interface ServerSidebarProps {
   onToggle: () => void
   onConnect: (server: Server) => void
   connectedServerId?: string
+  onDisconnect?: (serverId: string) => void
 }
 
 type ViewMode = 'grid' | 'list'
@@ -16,7 +17,8 @@ const ServerSidebar: React.FC<ServerSidebarProps> = ({
   isOpen, 
   onToggle, 
   onConnect, 
-  connectedServerId 
+  connectedServerId, 
+  onDisconnect
 }) => {
   const [servers, setServers] = useState<Server[]>([])
   const [filteredServers, setFilteredServers] = useState<Server[]>([])
@@ -64,6 +66,30 @@ const ServerSidebar: React.FC<ServerSidebarProps> = ({
   useEffect(() => {
     filterAndSortServers()
   }, [servers, searchQuery, selectedCategory, sortBy])
+
+  // Sync server status when connectedServerId changes from outside
+  useEffect(() => {
+    if (servers.length > 0) {
+      let hasChanges = false
+      
+      servers.forEach(server => {
+        const shouldBeConnected = server.id === connectedServerId
+        const currentlyConnected = server.status === 'connected'
+        
+        if (shouldBeConnected && !currentlyConnected) {
+          serverService.updateServerStatus(server.id, 'connected')
+          hasChanges = true
+        } else if (!shouldBeConnected && currentlyConnected) {
+          serverService.updateServerStatus(server.id, 'disconnected')
+          hasChanges = true
+        }
+      })
+      
+      if (hasChanges) {
+        setServers([...serverService.getAllServers()])
+      }
+    }
+  }, [connectedServerId, servers])
 
   const loadServers = async () => {
     try {
@@ -215,6 +241,9 @@ const ServerSidebar: React.FC<ServerSidebarProps> = ({
   const handleDisconnect = (server: Server) => {
     serverService.updateServerStatus(server.id, 'disconnected')
     setServers([...serverService.getAllServers()])
+    if (onDisconnect) {
+      onDisconnect(server.id)
+    }
   }
 
   // Handle sidebar resizing

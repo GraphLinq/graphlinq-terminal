@@ -8,6 +8,19 @@ import SSHKeyGeneratorModal from './components/SSHKeyGeneratorModal'
 import FileExplorer from './components/FileExplorer'
 import { Server } from './services/serverService'
 import { sshService, SSHConnectionConfig } from './services/sshService'
+import { 
+  RiSettings3Line, 
+  RiTerminalBoxLine, 
+  RiRobotLine, 
+  RiFolderOpenLine, 
+  RiCodeLine, 
+  RiInformationLine,
+  RiMoreLine
+} from 'react-icons/ri'
+import { 
+  FaKey, 
+  FaCog 
+} from 'react-icons/fa'
 import './styles/App.scss'
 
 function App() {
@@ -49,6 +62,13 @@ function App() {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [])
+
+  // Close AI Assistant when not connected to any server
+  useEffect(() => {
+    if (!isConnected && isAIAssistantOpen) {
+      setIsAIAssistantOpen(false)
+    }
+  }, [isConnected, isAIAssistantOpen])
 
   // Handle window controls
   const handleMinimize = async () => {
@@ -188,9 +208,19 @@ function App() {
       await sshService.disconnect(sshSessionId)
     }
     
+    // Update server status in sidebar if we have a connected server
+    if (connectedServer) {
+      // Import serverService to update the server status
+      const { default: serverService } = await import('./services/serverService')
+      serverService.updateServerStatus(connectedServer.id, 'disconnected')
+    }
+    
     setIsConnected(false)
     setConnectedServer(null)
     setSshSessionId(null)
+    
+    // Close AI Assistant panel when disconnected
+    setIsAIAssistantOpen(false)
   }
 
   // Menu component
@@ -201,30 +231,85 @@ function App() {
         onClick={handleMenuToggle}
         title="Menu"
       >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-          <circle cx="8" cy="3" r="1.5" />
-          <circle cx="8" cy="8" r="1.5" />
-          <circle cx="8" cy="13" r="1.5" />
-        </svg>
+        <RiMoreLine size={16} />
       </button>
       
       {menuOpen && (
         <div className="menu-dropdown">
-          <button onClick={() => {
-            setIsOptionsModalOpen(true);
-            setMenuOpen(false);
-          }}>Terminal Options</button>
-          <button onClick={handleOpenSSHKeyGen}>SSH Key Generator</button>
-          <button onClick={() => {
-            handleToggleAIAssistant();
-            setMenuOpen(false);
-          }}>AI Assistant</button>
-          <button onClick={() => {
-            handleToggleFileExplorer();
-            setMenuOpen(false);
-          }}>File Explorer</button>
-          <button onClick={handleOpenDevTools}>DevTools</button>
-          <button onClick={handleOpenAbout}>About</button>
+          <div className="menu-section">
+            <div className="menu-section-title">Terminal</div>
+            <button 
+              className="menu-item"
+              onClick={() => {
+                setIsOptionsModalOpen(true);
+                setMenuOpen(false);
+              }}
+            >
+              <RiSettings3Line className="menu-icon" />
+              <span className="menu-text">Terminal Options</span>
+              <span className="menu-shortcut">Ctrl+,</span>
+            </button>
+          </div>
+          
+          <div className="menu-divider"></div>
+          
+          <div className="menu-section">
+            <div className="menu-section-title">Tools</div>
+            <button 
+              className="menu-item"
+              onClick={handleOpenSSHKeyGen}
+            >
+              <FaKey className="menu-icon" />
+              <span className="menu-text">SSH Key Generator</span>
+            </button>
+            <button 
+              className="menu-item"
+              onClick={() => {
+                handleToggleAIAssistant();
+                setMenuOpen(false);
+              }}
+            >
+              <RiRobotLine className="menu-icon" />
+              <span className="menu-text">AI Assistant</span>
+              <span className="menu-badge">AI</span>
+            </button>
+            <button 
+              className="menu-item"
+              onClick={() => {
+                handleToggleFileExplorer();
+                setMenuOpen(false);
+              }}
+            >
+              <RiFolderOpenLine className="menu-icon" />
+              <span className="menu-text">File Explorer</span>
+            </button>
+          </div>
+          
+          <div className="menu-divider"></div>
+          
+          <div className="menu-section">
+            <div className="menu-section-title">Developer</div>
+            <button 
+              className="menu-item"
+              onClick={handleOpenDevTools}
+            >
+              <RiCodeLine className="menu-icon" />
+              <span className="menu-text">DevTools</span>
+              <span className="menu-shortcut">F12</span>
+            </button>
+          </div>
+          
+          <div className="menu-divider"></div>
+          
+          <div className="menu-section">
+            <button 
+              className="menu-item"
+              onClick={handleOpenAbout}
+            >
+              <RiInformationLine className="menu-icon" />
+              <span className="menu-text">About</span>
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -237,6 +322,10 @@ function App() {
         onToggle={handleSidebarToggle}
         onConnect={handleServerConnect}
         connectedServerId={connectedServer?.id}
+        onDisconnect={(serverId) => {
+          // This is called when disconnect is triggered from within the sidebar
+          handleDisconnect()
+        }}
       />
       
       <div className="terminal-header">
