@@ -150,9 +150,13 @@
     backdrop-filter: blur(16px);
     pointer-events: auto;
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+    opacity: 0; // Hidden by default
+    visibility: hidden; // Completely hidden
     
     &.open {
       transform: translateY(-50%) translateX(0);
+      opacity: 1; // Visible when open
+      visibility: visible; // Completely visible
     }
     
     .plugin-panel-header {

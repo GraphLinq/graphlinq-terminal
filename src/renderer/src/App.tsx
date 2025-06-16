@@ -210,11 +210,18 @@ function App() {
         host: server.host,
         port: server.port,
         username: server.username,
+        authType: server.authType,
         password: server.password,
-        privateKey: server.privateKey
+        privateKeyPath: server.privateKeyPath
       }
 
-      const sessionId = await sshService.connect(config)
+      const result = await sshService.connect(config)
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Connection failed')
+      }
+      
+      const sessionId = result.sessionId!
       
       setIsConnected(true)
       setConnectedServer(server)
@@ -511,8 +518,8 @@ function App() {
           onToggle={handleToggleFileExplorer}
         />
 
-        {/* Plugin Panels */}
-        <PluginPanels isConnected={isConnected} />
+              {/* Plugin Panels */}
+      <PluginPanels isConnected={isConnected} />
       </div>
 
       {/* Footer avec informations de connexion */}

@@ -116,14 +116,71 @@ export class PluginAPIService {
             throw new Error('No active terminal session')
           }
 
-          // Simulate command execution for now
-          // In a real implementation, this would use the SSH service
-          return {
-            stdout: `Simulated output for: ${command}`,
-            stderr: '',
-            exitCode: 0,
-            command
+          // Use the SSH write method to send the command
+          if (!window.electronAPI?.sshWrite) {
+            throw new Error('SSH API not available')
           }
+
+          return new Promise((resolve, reject) => {
+            let output = ''
+            let errorOutput = ''
+            let isComplete = false
+            
+            // Set up data listener to capture output
+            const handleData = (sessionId: string, data: string) => {
+              if (sessionId === this.currentSession?.id) {
+                output += data
+                
+                // Check if command is complete (simple heuristic)
+                if (data.includes('$') || data.includes('#') || data.includes('>')) {
+                  if (!isComplete) {
+                    isComplete = true
+                    cleanup()
+                    resolve({
+                      stdout: output,
+                      stderr: errorOutput,
+                      exitCode: 0,
+                      command
+                    })
+                  }
+                }
+              }
+            }
+
+            const cleanup = () => {
+              if (window.electronAPI?.offSSHData) {
+                window.electronAPI.offSSHData()
+              }
+            }
+
+            // Set up timeout
+            const timeout = setTimeout(() => {
+              if (!isComplete) {
+                isComplete = true
+                cleanup()
+                resolve({
+                  stdout: output,
+                  stderr: errorOutput,
+                  exitCode: 0,
+                  command
+                })
+              }
+            }, options?.timeout || 10000)
+
+            // Listen for SSH data
+            if (window.electronAPI?.onSSHData) {
+              window.electronAPI.onSSHData(handleData)
+            }
+
+            // Send the command
+            const fullCommand = command + '\n'
+            window.electronAPI.sshWrite(this.currentSession.id, fullCommand)
+              .catch((error) => {
+                cleanup()
+                clearTimeout(timeout)
+                reject(new Error(`Failed to send command: ${error.message}`))
+              })
+          })
         } catch (error) {
           throw new Error(`Command execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
         }
@@ -139,9 +196,55 @@ export class PluginAPIService {
         }
 
         try {
-          // Simulate streaming execution
-          onData(`Executing: ${command}\n`)
-          setTimeout(() => onData('Command completed\n'), 1000)
+          if (!window.electronAPI?.sshWrite || !window.electronAPI?.onSSHData) {
+            throw new Error('SSH API not available')
+          }
+
+          return new Promise((resolve, reject) => {
+            let isComplete = false
+            
+            const handleData = (sessionId: string, data: string) => {
+              if (sessionId === this.currentSession?.id) {
+                onData(data)
+                
+                // Check if command is complete
+                if (data.includes('$') || data.includes('#') || data.includes('>')) {
+                  if (!isComplete) {
+                    isComplete = true
+                    cleanup()
+                    resolve()
+                  }
+                }
+              }
+            }
+
+            const cleanup = () => {
+              if (window.electronAPI?.offSSHData) {
+                window.electronAPI.offSSHData()
+              }
+            }
+
+            // Set up timeout
+            const timeout = setTimeout(() => {
+              if (!isComplete) {
+                isComplete = true
+                cleanup()
+                resolve()
+              }
+            }, 30000) // 30 second timeout for streaming
+
+            // Listen for SSH data
+            window.electronAPI.onSSHData(handleData)
+
+            // Send the command
+            const fullCommand = command + '\n'
+            window.electronAPI.sshWrite(this.currentSession.id, fullCommand)
+              .catch((error) => {
+                cleanup()
+                clearTimeout(timeout)
+                reject(new Error(`Failed to send command: ${error.message}`))
+              })
+          })
         } catch (error) {
           throw new Error(`Streaming execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
         }

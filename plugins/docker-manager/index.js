@@ -182,6 +182,107 @@ class DockerManagerPlugin {
     
     // Return a React component factory
     return function DockerPanel() {
+      const [containers, setContainers] = React.useState([])
+      const [images, setImages] = React.useState([])
+      const [isLoading, setIsLoading] = React.useState(false)
+      const [lastUpdate, setLastUpdate] = React.useState(null)
+      
+      // Refresh containers function
+      const handleRefreshContainers = async () => {
+        if (!self.isDockerAvailable || !self.sdk) return
+        
+        setIsLoading(true)
+        try {
+          console.log('Refreshing containers...')
+          // Use basic docker ps command without custom formatting
+          const result = await self.sdk.terminal.execute('docker ps -a')
+          
+          if (result.exitCode === 0 && result.stdout) {
+            console.log('Docker ps output:', result.stdout)
+            
+            // Parse the standard docker ps output
+            const lines = result.stdout.split('\n').filter(line => line.trim())
+            const containerList = []
+            
+            // Skip header line and parse each container line
+            for (let i = 1; i < lines.length; i++) {
+              const line = lines[i].trim()
+              if (line) {
+                // Extract container name (last column before ports)
+                const parts = line.split(/\s+/)
+                if (parts.length >= 2) {
+                  const name = parts[parts.length - 1] // Container name is usually the last column
+                  const status = line.includes('Up') ? 'Running' : 'Stopped'
+                  containerList.push({ name, status, image: parts[1] || 'Unknown' })
+                }
+              }
+            }
+            
+            setContainers(containerList)
+            self.containers = containerList
+            setLastUpdate(new Date().toLocaleTimeString())
+            console.log('Parsed containers:', containerList)
+            self.sdk.ui.showNotification(`Found ${containerList.length} containers`, 'info')
+          } else {
+            console.error('Docker command failed:', result.stderr || 'No output')
+            self.sdk.ui.showNotification('Failed to refresh containers - check if Docker is running', 'error')
+          }
+        } catch (error) {
+          console.error('Failed to refresh containers:', error)
+          self.sdk.ui.showNotification('Failed to refresh containers', 'error')
+        } finally {
+          setIsLoading(false)
+        }
+      }
+      
+      // Refresh images function
+      const handleRefreshImages = async () => {
+        if (!self.isDockerAvailable || !self.sdk) return
+        
+        setIsLoading(true)
+        try {
+          console.log('Refreshing images...')
+          // Use basic docker images command without custom formatting
+          const result = await self.sdk.terminal.execute('docker images')
+          
+          if (result.exitCode === 0 && result.stdout) {
+            console.log('Docker images output:', result.stdout)
+            
+            // Parse the standard docker images output
+            const lines = result.stdout.split('\n').filter(line => line.trim())
+            const imageList = []
+            
+            // Skip header line and parse each image line
+            for (let i = 1; i < lines.length; i++) {
+              const line = lines[i].trim()
+              if (line) {
+                const parts = line.split(/\s+/)
+                if (parts.length >= 3) {
+                  const repository = parts[0] || 'Unknown'
+                  const tag = parts[1] || 'Unknown'
+                  const size = parts[parts.length - 1] || 'Unknown' // Size is usually the last column
+                  imageList.push({ repository, tag, size })
+                }
+              }
+            }
+            
+            setImages(imageList)
+            self.images = imageList
+            setLastUpdate(new Date().toLocaleTimeString())
+            console.log('Parsed images:', imageList)
+            self.sdk.ui.showNotification(`Found ${imageList.length} images`, 'info')
+          } else {
+            console.error('Docker command failed:', result.stderr || 'No output')
+            self.sdk.ui.showNotification('Failed to refresh images - check if Docker is running', 'error')
+          }
+        } catch (error) {
+          console.error('Failed to refresh images:', error)
+          self.sdk.ui.showNotification('Failed to refresh images', 'error')
+        } finally {
+          setIsLoading(false)
+        }
+      }
+      
       return React.createElement('div', {
         className: 'docker-panel',
         style: {
@@ -196,45 +297,331 @@ class DockerManagerPlugin {
           key: 'status',
           style: { marginBottom: '12px' }
         }, `Status: ${self.isDockerAvailable ? 'Docker Available' : 'Waiting for connection...'}`),
-        React.createElement('button', {
-          key: 'refresh',
-          style: {
-            marginTop: '8px',
-            padding: '8px 16px',
-            backgroundColor: self.isDockerAvailable ? '#007acc' : '#666',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: self.isDockerAvailable ? 'pointer' : 'not-allowed'
-          },
-          disabled: !self.isDockerAvailable,
-          onClick: () => {
-            if (self.isDockerAvailable && self.sdk) {
-              console.log('Docker refresh clicked')
-              self.refreshContainers(self.sdk)
-            }
-          }
-        }, 'Refresh Containers'),
-        React.createElement('button', {
-          key: 'refresh-images',
-          style: {
-            marginTop: '8px',
-            marginLeft: '8px',
-            padding: '8px 16px',
-            backgroundColor: self.isDockerAvailable ? '#28a745' : '#666',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: self.isDockerAvailable ? 'pointer' : 'not-allowed'
-          },
-          disabled: !self.isDockerAvailable,
-          onClick: () => {
-            if (self.isDockerAvailable && self.sdk) {
-              console.log('Docker refresh images clicked')
-              self.refreshImages(self.sdk)
-            }
-          }
-        }, 'Refresh Images')
+        
+        // Last update info
+        lastUpdate && React.createElement('div', {
+          key: 'last-update',
+          style: { fontSize: '12px', color: '#888', marginBottom: '12px' }
+        }, `Last update: ${lastUpdate}`),
+        
+        // Refresh buttons
+        React.createElement('div', {
+          key: 'buttons',
+          style: { marginBottom: '16px' }
+        }, [
+          React.createElement('button', {
+            key: 'refresh-containers',
+            style: {
+              padding: '8px 16px',
+              backgroundColor: self.isDockerAvailable && !isLoading ? '#007acc' : '#666',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: self.isDockerAvailable && !isLoading ? 'pointer' : 'not-allowed',
+              marginRight: '8px'
+            },
+            disabled: !self.isDockerAvailable || isLoading,
+            onClick: handleRefreshContainers
+          }, isLoading ? 'Loading...' : 'Refresh Containers'),
+          
+          React.createElement('button', {
+            key: 'refresh-images',
+            style: {
+              padding: '8px 16px',
+              backgroundColor: self.isDockerAvailable && !isLoading ? '#28a745' : '#666',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: self.isDockerAvailable && !isLoading ? 'pointer' : 'not-allowed'
+            },
+            disabled: !self.isDockerAvailable || isLoading,
+            onClick: handleRefreshImages
+          }, isLoading ? 'Loading...' : 'Refresh Images')
+        ]),
+        
+        // Containers list
+        containers.length > 0 && React.createElement('div', {
+          key: 'containers-section',
+          style: { marginBottom: '16px' }
+        }, [
+          React.createElement('h4', { key: 'containers-title' }, `Containers (${containers.length})`),
+          React.createElement('div', {
+            key: 'containers-list',
+            style: { fontSize: '12px', maxHeight: '200px', overflowY: 'auto' }
+          }, containers.map((container, index) => 
+            React.createElement('div', {
+              key: `container-${index}`,
+              style: { 
+                padding: '8px', 
+                margin: '4px 0', 
+                backgroundColor: 'rgba(255,255,255,0.1)', 
+                borderRadius: '6px',
+                border: '1px solid rgba(255,255,255,0.2)'
+              }
+            }, [
+              // Container info
+              React.createElement('div', {
+                key: 'info',
+                style: { 
+                  fontWeight: 'bold', 
+                  marginBottom: '4px',
+                  color: container.status.includes('Up') ? '#10b981' : '#ef4444'
+                }
+              }, `${container.name}`),
+              React.createElement('div', {
+                key: 'status',
+                style: { fontSize: '11px', color: '#888', marginBottom: '6px' }
+              }, `Status: ${container.status} | Image: ${container.image}`),
+              
+              // Action buttons
+              React.createElement('div', {
+                key: 'actions',
+                style: { display: 'flex', gap: '4px', flexWrap: 'wrap' }
+              }, [
+                // Start button (only if stopped)
+                !container.status.includes('Up') && React.createElement('button', {
+                  key: 'start',
+                  style: {
+                    padding: '4px 8px',
+                    fontSize: '10px',
+                    backgroundColor: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  },
+                  onClick: async () => {
+                    if (self.sdk) {
+                      try {
+                        await self.sdk.terminal.execute(`docker start ${container.name}`)
+                        self.sdk.ui.showNotification(`Starting ${container.name}...`, 'info')
+                        setTimeout(() => handleRefreshContainers(), 2000)
+                      } catch (error) {
+                        self.sdk.ui.showNotification(`Failed to start ${container.name}`, 'error')
+                      }
+                    }
+                  }
+                }, '▶ Start'),
+                
+                // Stop button (only if running)
+                container.status.includes('Up') && React.createElement('button', {
+                  key: 'stop',
+                  style: {
+                    padding: '4px 8px',
+                    fontSize: '10px',
+                    backgroundColor: '#ef4444',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  },
+                  onClick: async () => {
+                    if (self.sdk) {
+                      try {
+                        await self.sdk.terminal.execute(`docker stop ${container.name}`)
+                        self.sdk.ui.showNotification(`Stopping ${container.name}...`, 'info')
+                        setTimeout(() => handleRefreshContainers(), 2000)
+                      } catch (error) {
+                        self.sdk.ui.showNotification(`Failed to stop ${container.name}`, 'error')
+                      }
+                    }
+                  }
+                }, '⏹ Stop'),
+                
+                // Restart button
+                React.createElement('button', {
+                  key: 'restart',
+                  style: {
+                    padding: '4px 8px',
+                    fontSize: '10px',
+                    backgroundColor: '#f59e0b',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  },
+                  onClick: async () => {
+                    if (self.sdk) {
+                      try {
+                        await self.sdk.terminal.execute(`docker restart ${container.name}`)
+                        self.sdk.ui.showNotification(`Restarting ${container.name}...`, 'info')
+                        setTimeout(() => handleRefreshContainers(), 3000)
+                      } catch (error) {
+                        self.sdk.ui.showNotification(`Failed to restart ${container.name}`, 'error')
+                      }
+                    }
+                  }
+                }, '🔄 Restart'),
+                
+                // Logs button
+                React.createElement('button', {
+                  key: 'logs',
+                  style: {
+                    padding: '4px 8px',
+                    fontSize: '10px',
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  },
+                  onClick: async () => {
+                    if (self.sdk) {
+                      try {
+                        const result = await self.sdk.terminal.execute(`docker logs --tail 20 ${container.name}`)
+                        console.log(`Logs for ${container.name}:`, result.stdout)
+                        self.sdk.ui.showNotification(`Logs displayed in console for ${container.name}`, 'info')
+                      } catch (error) {
+                        self.sdk.ui.showNotification(`Failed to get logs for ${container.name}`, 'error')
+                      }
+                    }
+                  }
+                }, '📋 Logs'),
+                
+                // Remove button (only if stopped)
+                !container.status.includes('Up') && React.createElement('button', {
+                  key: 'remove',
+                  style: {
+                    padding: '4px 8px',
+                    fontSize: '10px',
+                    backgroundColor: '#dc2626',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  },
+                  onClick: async () => {
+                    if (self.sdk && confirm(`Are you sure you want to remove container ${container.name}?`)) {
+                      try {
+                        await self.sdk.terminal.execute(`docker rm ${container.name}`)
+                        self.sdk.ui.showNotification(`Removed ${container.name}`, 'success')
+                        setTimeout(() => handleRefreshContainers(), 1000)
+                      } catch (error) {
+                        self.sdk.ui.showNotification(`Failed to remove ${container.name}`, 'error')
+                      }
+                    }
+                  }
+                }, '🗑 Remove')
+              ])
+            ])
+          ))
+        ]),
+        
+        // Images list
+        images.length > 0 && React.createElement('div', {
+          key: 'images-section'
+        }, [
+          React.createElement('h4', { key: 'images-title' }, `Images (${images.length})`),
+          React.createElement('div', {
+            key: 'images-list',
+            style: { fontSize: '12px', maxHeight: '200px', overflowY: 'auto' }
+          }, images.map((image, index) => 
+            React.createElement('div', {
+              key: `image-${index}`,
+              style: { 
+                padding: '8px', 
+                margin: '4px 0', 
+                backgroundColor: 'rgba(255,255,255,0.1)', 
+                borderRadius: '6px',
+                border: '1px solid rgba(255,255,255,0.2)'
+              }
+            }, [
+              // Image info
+              React.createElement('div', {
+                key: 'info',
+                style: { fontWeight: 'bold', marginBottom: '4px' }
+              }, `${image.repository}:${image.tag}`),
+              React.createElement('div', {
+                key: 'size',
+                style: { fontSize: '11px', color: '#888', marginBottom: '6px' }
+              }, `Size: ${image.size}`),
+              
+              // Action buttons for images
+              React.createElement('div', {
+                key: 'actions',
+                style: { display: 'flex', gap: '4px', flexWrap: 'wrap' }
+              }, [
+                // Run button
+                React.createElement('button', {
+                  key: 'run',
+                  style: {
+                    padding: '4px 8px',
+                    fontSize: '10px',
+                    backgroundColor: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  },
+                  onClick: async () => {
+                    if (self.sdk) {
+                      const containerName = prompt(`Enter container name for ${image.repository}:${image.tag}:`)
+                      if (containerName) {
+                        try {
+                          await self.sdk.terminal.execute(`docker run -d --name ${containerName} ${image.repository}:${image.tag}`)
+                          self.sdk.ui.showNotification(`Started container ${containerName}`, 'success')
+                          setTimeout(() => handleRefreshContainers(), 2000)
+                        } catch (error) {
+                          self.sdk.ui.showNotification(`Failed to run ${image.repository}:${image.tag}`, 'error')
+                        }
+                      }
+                    }
+                  }
+                }, '▶ Run'),
+                
+                // Pull button (update image)
+                React.createElement('button', {
+                  key: 'pull',
+                  style: {
+                    padding: '4px 8px',
+                    fontSize: '10px',
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  },
+                  onClick: async () => {
+                    if (self.sdk) {
+                      try {
+                        await self.sdk.terminal.execute(`docker pull ${image.repository}:${image.tag}`)
+                        self.sdk.ui.showNotification(`Pulling ${image.repository}:${image.tag}...`, 'info')
+                        setTimeout(() => handleRefreshImages(), 5000)
+                      } catch (error) {
+                        self.sdk.ui.showNotification(`Failed to pull ${image.repository}:${image.tag}`, 'error')
+                      }
+                    }
+                  }
+                }, '⬇ Pull'),
+                
+                // Remove image button
+                React.createElement('button', {
+                  key: 'remove',
+                  style: {
+                    padding: '4px 8px',
+                    fontSize: '10px',
+                    backgroundColor: '#dc2626',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  },
+                  onClick: async () => {
+                    if (self.sdk && confirm(`Are you sure you want to remove image ${image.repository}:${image.tag}?`)) {
+                      try {
+                        await self.sdk.terminal.execute(`docker rmi ${image.repository}:${image.tag}`)
+                        self.sdk.ui.showNotification(`Removed image ${image.repository}:${image.tag}`, 'success')
+                        setTimeout(() => handleRefreshImages(), 1000)
+                      } catch (error) {
+                        self.sdk.ui.showNotification(`Failed to remove ${image.repository}:${image.tag}`, 'error')
+                      }
+                    }
+                  }
+                }, '🗑 Remove')
+              ])
+            ])
+          ))
+        ])
       ])
     }
   }
