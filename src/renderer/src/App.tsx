@@ -21,7 +21,9 @@ import {
   RiCodeLine, 
   RiInformationLine,
   RiMoreLine,
-  RiPlugLine
+  RiPlugLine,
+  RiCloseLine,
+  RiAddLine
 } from 'react-icons/ri'
 import { 
   FaKey, 
@@ -29,13 +31,19 @@ import {
 } from 'react-icons/fa'
 import './styles/App.scss'
 
+interface TerminalSession {
+  id: string
+  server: Server
+  sessionId: string
+  isConnected: boolean
+  isConnecting: boolean
+}
+
 function App() {
   const [platform, setPlatform] = useState<string>('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [connectedServer, setConnectedServer] = useState<Server | null>(null)
-  const [sshSessionId, setSshSessionId] = useState<string | null>(null)
-  const [isConnecting, setIsConnecting] = useState(false)
-  const [isConnected, setIsConnected] = useState(false)
+  const [terminalSessions, setTerminalSessions] = useState<TerminalSession[]>([])
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const [isOptionsModalOpen, setIsOptionsModalOpen] = useState(false)
@@ -45,6 +53,21 @@ function App() {
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState(false)
   const [isPluginManagerOpen, setIsPluginManagerOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
+
+  // Helper functions
+  const getActiveSession = (): TerminalSession | null => {
+    return terminalSessions.find(session => session.id === activeSessionId) || null
+  }
+
+  const isAnySessionConnected = (): boolean => {
+    return terminalSessions.some(session => session.isConnected)
+  }
+
+  const getConnectedServerIds = (): string[] => {
+    return terminalSessions
+      .filter(session => session.isConnected)
+      .map(session => session.server.id)
+  }
 
   // Get platform info
   useEffect(() => {
@@ -102,12 +125,30 @@ function App() {
     }
   }, [])
 
-  // Close AI Assistant when not connected to any server
+  // Close AI Assistant when no sessions are connected
   useEffect(() => {
-    if (!isConnected && isAIAssistantOpen) {
+    if (!isAnySessionConnected() && isAIAssistantOpen) {
       setIsAIAssistantOpen(false)
     }
-  }, [isConnected, isAIAssistantOpen])
+  }, [terminalSessions, isAIAssistantOpen])
+
+  // Update plugin API with active session
+  useEffect(() => {
+    const activeSession = getActiveSession()
+    if (activeSession && activeSession.isConnected) {
+      const sessionInfo = {
+        id: activeSession.sessionId,
+        host: activeSession.server.host,
+        port: activeSession.server.port,
+        username: activeSession.server.username,
+        isConnected: true,
+        currentDirectory: '~'
+      }
+      pluginAPI.setCurrentSession(sessionInfo)
+    } else {
+      pluginAPI.setCurrentSession(null)
+    }
+  }, [activeSessionId, terminalSessions])
 
   // Handle window controls
   const handleMinimize = async () => {
@@ -123,9 +164,11 @@ function App() {
   }
 
   const handleClose = async () => {
-    // Disconnect SSH session before closing
-    if (sshSessionId) {
-      await sshService.disconnect(sshSessionId)
+    // Disconnect all SSH sessions before closing
+    for (const session of terminalSessions) {
+      if (session.isConnected) {
+        await sshService.disconnect(session.sessionId)
+      }
     }
     
     if (window.electronAPI) {
@@ -220,11 +263,72 @@ function App() {
     setNotifications(prev => prev.filter(notification => notification.id !== id))
   }
 
+  // Terminal tab management
+  const createTerminalSession = (server: Server, sessionId: string): TerminalSession => {
+    return {
+      id: `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      server,
+      sessionId,
+      isConnected: true,
+      isConnecting: false
+    }
+  }
+
+  const addTerminalSession = (session: TerminalSession) => {
+    setTerminalSessions(prev => [...prev, session])
+    setActiveSessionId(session.id)
+  }
+
+  const removeTerminalSession = (sessionId: string) => {
+    setTerminalSessions(prev => {
+      const newSessions = prev.filter(session => session.id !== sessionId)
+      
+      // If we're removing the active session, switch to another one
+      if (activeSessionId === sessionId) {
+        const newActiveSession = newSessions[0]
+        setActiveSessionId(newActiveSession?.id || null)
+      }
+      
+      return newSessions
+    })
+  }
+
+  const updateSessionStatus = (sessionId: string, isConnected: boolean, isConnecting: boolean = false) => {
+    setTerminalSessions(prev => 
+      prev.map(session => 
+        session.id === sessionId 
+          ? { ...session, isConnected, isConnecting }
+          : session
+      )
+    )
+  }
+
   // Handle server connection from sidebar
   const handleServerConnect = async (server: Server) => {
-    if (isConnecting) return
+    // Check if we're already connected to this server
+    const existingSession = terminalSessions.find(session => 
+      session.server.id === server.id && session.isConnected
+    )
     
-    setIsConnecting(true)
+    if (existingSession) {
+      // Just switch to existing session
+      setActiveSessionId(existingSession.id)
+      setSidebarOpen(false)
+      addNotification(`Switched to existing connection: ${server.name}`, 'info')
+      return
+    }
+    
+    // Create new session
+    const tempSessionId = `temp-${Date.now()}`
+    const tempSession: TerminalSession = {
+      id: tempSessionId,
+      server,
+      sessionId: '',
+      isConnected: false,
+      isConnecting: true
+    }
+    
+    addTerminalSession(tempSession)
     
     try {
       const config: SSHConnectionConfig = {
@@ -244,9 +348,14 @@ function App() {
       
       const sessionId = result.sessionId!
       
-      setIsConnected(true)
-      setConnectedServer(server)
-      setSshSessionId(sessionId)
+      // Update the session with real sessionId
+      setTerminalSessions(prev => 
+        prev.map(session => 
+          session.id === tempSessionId 
+            ? { ...session, sessionId, isConnected: true, isConnecting: false }
+            : session
+        )
+      )
       
       // Show connection success notification
       addNotification(`Connected to ${server.name} (${server.host})`, 'success')
@@ -254,8 +363,10 @@ function App() {
       // Close sidebar after connection
       setSidebarOpen(false)
       
-      // Automatically open AI Assistant panel when connected
-      setIsAIAssistantOpen(true)
+      // Automatically open AI Assistant panel when first connection is made
+      if (terminalSessions.length === 0) {
+        setIsAIAssistantOpen(true)
+      }
 
       // Notify plugins about server connection with a delay to ensure session is stable
       const sessionInfo = {
@@ -276,37 +387,138 @@ function App() {
       console.log(`Connected to ${server.name}`)
     } catch (error: any) {
       console.error('Connection failed:', error)
-      alert(`Failed to connect to ${server.name}: ${error}`)
-    } finally {
-      setIsConnecting(false)
+      addNotification(`Failed to connect to ${server.name}: ${error}`, 'error')
+      
+      // Remove the failed session
+      removeTerminalSession(tempSessionId)
     }
   }
 
-  // Handle disconnect
-  const handleDisconnect = async () => {
-    if (sshSessionId) {
-      await sshService.disconnect(sshSessionId)
-    }
+  // Handle disconnect from specific session
+  const handleSessionDisconnect = async (sessionId: string) => {
+    const session = terminalSessions.find(s => s.id === sessionId)
+    if (!session) return
     
-    // Update server status in sidebar if we have a connected server
-    if (connectedServer) {
-      // Import serverService to update the server status
+    try {
+      if (session.isConnected && session.sessionId) {
+        await sshService.disconnect(session.sessionId)
+      }
+      
+      // Update server status in sidebar
       const { default: serverService } = await import('./services/serverService')
-      serverService.updateServerStatus(connectedServer.id, 'disconnected')
+      serverService.updateServerStatus(session.server.id, 'disconnected')
+      
+      addNotification(`Disconnected from ${session.server.name}`, 'info')
+      
+      // Remove the session
+      removeTerminalSession(sessionId)
+      
+      // If this was the last session, close AI Assistant
+      if (terminalSessions.length === 1) {
+        setIsAIAssistantOpen(false)
+        await pluginManager.onServerDisconnect()
+      }
+      
+    } catch (error) {
+      console.error('Error disconnecting session:', error)
+      addNotification(`Error disconnecting from ${session.server.name}`, 'error')
+    }
+  }
+
+  // Handle disconnect all sessions
+  const handleDisconnectAll = async () => {
+    for (const session of terminalSessions) {
+      if (session.isConnected && session.sessionId) {
+        try {
+          await sshService.disconnect(session.sessionId)
+          
+          // Update server status in sidebar
+          const { default: serverService } = await import('./services/serverService')
+          serverService.updateServerStatus(session.server.id, 'disconnected')
+        } catch (error) {
+          console.error('Error disconnecting session:', error)
+        }
+      }
     }
     
-    setIsConnected(false)
-    setConnectedServer(null)
-    setSshSessionId(null)
-    
-    // Show disconnection notification
-    addNotification('Disconnected from server', 'info')
-    
-    // Close AI Assistant panel when disconnected
+    setTerminalSessions([])
+    setActiveSessionId(null)
     setIsAIAssistantOpen(false)
-
-    // Notify plugins about server disconnection
+    
     await pluginManager.onServerDisconnect()
+    addNotification('Disconnected from all servers', 'info')
+  }
+
+  // Terminal tabs component
+  const TerminalTabs = () => {
+    if (terminalSessions.length === 0) return null
+
+    return (
+      <div className="terminal-tabs">
+        <div className="tabs-container">
+          {terminalSessions.map(session => (
+            <div 
+              key={session.id}
+              className={`terminal-tab ${activeSessionId === session.id ? 'active' : ''} ${session.isConnecting ? 'connecting' : 'disconnected'}`}
+              onClick={() => setActiveSessionId(session.id)}
+            >
+              <div className="tab-content">
+                <div className={`tab-status ${session.isConnected ? 'connected' : session.isConnecting ? 'connecting' : 'disconnected'}`}>
+                  {session.isConnecting ? (
+                    <div className="connecting-spinner">
+                      <svg width="12" height="12" viewBox="0 0 12 12">
+                        <circle cx="6" cy="6" r="4" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="8" strokeLinecap="round">
+                          <animateTransform attributeName="transform" type="rotate" values="0 6 6;360 6 6" dur="1s" repeatCount="indefinite"/>
+                        </circle>
+                      </svg>
+                    </div>
+                  ) : (
+                    <div className="status-dot"></div>
+                  )}
+                </div>
+                <span className="tab-name">{session.server.name}</span>
+                <span className="tab-host">({session.server.host})</span>
+              </div>
+              <button 
+                className="tab-close"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleSessionDisconnect(session.id)
+                }}
+                title="Disconnect"
+              >
+                <RiCloseLine size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+        
+        <div className="tabs-actions">
+          <button 
+            className="add-tab-btn"
+            onClick={() => setSidebarOpen(true)}
+            title="Add new connection"
+          >
+            <RiAddLine size={16} />
+          </button>
+          
+          {terminalSessions.length > 1 && (
+            <button 
+              className="disconnect-all-btn"
+              onClick={handleDisconnectAll}
+              title="Disconnect all"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M2.5 1a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1h-3zM3 4.5h2v1H3v-1z"/>
+                <path d="M9.5 1a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1h-3zM10 4.5h2v1h-2v-1z"/>
+                <path d="M2.5 9a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-3zM3 12.5h2v1H3v-1z"/>
+                <path d="M9.5 9a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-3zM10 12.5h2v1h-2v-1z"/>
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+    )
   }
 
   // Menu component
@@ -357,7 +569,7 @@ function App() {
                 handleToggleAIAssistant();
                 setMenuOpen(false);
               }}
-              disabled={!isConnected}
+              disabled={!isAnySessionConnected()}
             >
               <RiRobotLine className="menu-icon" />
               <span className="menu-text">AI Assistant</span>
@@ -369,7 +581,7 @@ function App() {
                 handleToggleFileExplorer();
                 setMenuOpen(false);
               }}
-              disabled={!isConnected}
+              disabled={!isAnySessionConnected()}
             >
               <RiFolderOpenLine className="menu-icon" />
               <span className="menu-text">File Explorer</span>
@@ -416,16 +628,18 @@ function App() {
     </div>
   )
 
+  const activeSession = getActiveSession()
+
   return (
     <div className="terminal-app">
       <ServerSidebar
         isOpen={sidebarOpen}
         onToggle={handleSidebarToggle}
         onConnect={handleServerConnect}
-        connectedServerId={connectedServer?.id}
-        onDisconnect={(serverId) => {
+        connectedServerIds={getConnectedServerIds()}
+        onDisconnect={() => {
           // This is called when disconnect is triggered from within the sidebar
-          handleDisconnect()
+          // We'll handle this in the sidebar component itself
         }}
       />
       
@@ -449,7 +663,7 @@ function App() {
                 </svg>
                 <span>Servers</span>
               </button>
-              {isConnected && (
+              {isAnySessionConnected() && (
                 <button 
                   className={`file-explorer-toggle ${isFileExplorerOpen ? 'open' : ''}`}
                   onClick={handleToggleFileExplorer}
@@ -484,7 +698,7 @@ function App() {
                   </svg>
                   <span>Servers</span>
                 </button>
-                {isConnected && (
+                {isAnySessionConnected() && (
                   <button 
                     className={`file-explorer-toggle ${isFileExplorerOpen ? 'open' : ''}`}
                     onClick={handleToggleFileExplorer}
@@ -525,68 +739,79 @@ function App() {
         )}
       </div>
       
+      {/* Terminal Tabs */}
+      <TerminalTabs />
+      
       <div className="terminal-body">
         <Terminal
-          sessionId={sshSessionId}
-          isConnected={isConnected}
-          onDisconnect={handleDisconnect}
+          sessionId={activeSession?.sessionId || null}
+          isConnected={activeSession?.isConnected || false}
+          onDisconnect={() => {
+            if (activeSession) {
+              handleSessionDisconnect(activeSession.id)
+            }
+          }}
         />
         
         {/* Panel Assistant IA */}
         <AIAssistantPanel
           isOpen={isAIAssistantOpen}
           onClose={() => setIsAIAssistantOpen(false)}
-          sessionId={sshSessionId}
+          sessionId={activeSession?.sessionId || null}
           onOpenFileExplorer={handleAIOpenFileExplorer}
           onOpenFileEditor={handleAIOpenFileEditor}
         />
         
         {/* Explorateur de fichiers */}
         <FileExplorer
-          sessionId={sshSessionId}
-          isConnected={isConnected}
+          sessionId={activeSession?.sessionId || null}
+          isConnected={isAnySessionConnected()}
           isOpen={isFileExplorerOpen}
           onToggle={handleToggleFileExplorer}
         />
 
-              {/* Plugin Panels */}
-      <PluginPanels isConnected={isConnected} />
+        {/* Plugin Panels */}
+        <PluginPanels isConnected={isAnySessionConnected()} />
       </div>
 
       {/* Footer avec informations de connexion */}
       <div className="terminal-footer">
         <div className="footer-left">
-          <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
+          <div className={`connection-status ${isAnySessionConnected() ? 'connected' : 'disconnected'}`}>
             <div className="status-indicator"></div>
             <span className="status-text">
-              {isConnecting ? 'Connecting...' : isConnected ? 'Connected' : 'Disconnected'}
+              {terminalSessions.some(s => s.isConnecting) ? 'Connecting...' : 
+               isAnySessionConnected() ? `Connected (${terminalSessions.filter(s => s.isConnected).length})` : 'Disconnected'}
             </span>
           </div>
         </div>
         
         <div className="footer-center">
-          {connectedServer && (
+          {activeSession && (
             <div className="footer-server-info">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
                 <path d="M2 3h10v2H2V3zm0 3h10v2H2V6zm0 3h10v2H2V9z"/>
               </svg>
-              <span className="server-name">{connectedServer.name}</span>
-              <span className="server-host">({connectedServer.username}@{connectedServer.host}:{connectedServer.port})</span>
+              <span className="server-name">{activeSession.server.name}</span>
+              <span className="server-host">({activeSession.server.username}@{activeSession.server.host}:{activeSession.server.port})</span>
             </div>
           )}
         </div>
         
         <div className="footer-right">
-          {isConnected && (
+          {terminalSessions.length > 0 && (
             <button 
               className="disconnect-button"
-              onClick={handleDisconnect}
-              title="Disconnect"
+              onClick={terminalSessions.length === 1 ? 
+                () => handleSessionDisconnect(terminalSessions[0].id) : 
+                handleDisconnectAll
+              }
+              title={terminalSessions.length === 1 ? "Disconnect" : "Disconnect All"}
             >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
                 <path d="M6 1a5 5 0 1 0 0 10A5 5 0 0 0 6 1zM4.5 4.5L6 6l1.5-1.5L8 5l-1.5 1.5L8 8l-.5.5L6 7l-1.5 1.5L4 8l1.5-1.5L4 5l.5-.5z"/>
               </svg>
-              Disconnect
+              {terminalSessions.length === 1 ? 'Disconnect' : 'Disconnect All'}
             </button>
           )}
         </div>

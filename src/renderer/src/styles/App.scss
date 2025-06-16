@@ -227,15 +227,10 @@ body {
 
 // Terminal Body
 .terminal-body {
+  display: flex;
   flex: 1;
-  background: $bg-primary;
-  overflow-y: auto;
-  overflow-x: hidden;
-  font-family: $font-mono;
-  font-size: 14px;
-  line-height: 1.4;
+  overflow: hidden;
   position: relative;
-  @include custom-scrollbar();
 }
 
 .terminal-content {
@@ -909,4 +904,280 @@ body {
   &:active {
     background: rgba($accent-red, 0.2);
   }
+}
+
+// Terminal Tabs Styles
+.terminal-tabs {
+  display: flex;
+  align-items: center;
+  background: $bg-secondary;
+  border-bottom: 1px solid $border-color;
+  padding: 0 16px;
+  min-height: 40px;
+  flex-shrink: 0;
+  overflow: hidden;
+
+  .tabs-container {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .terminal-tab {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    margin-right: 4px;
+    background: $bg-tertiary;
+    border: 1px solid $border-color;
+    border-bottom: none;
+    border-radius: $border-radius $border-radius 0 0;
+    cursor: pointer;
+    transition: all $transition-fast;
+    min-width: 160px;
+    max-width: 200px;
+    position: relative;
+    flex-shrink: 0;
+
+         &:hover {
+       background: rgba($accent-primary, 0.1);
+       border-color: rgba($accent-primary, 0.3);
+     }
+
+     &.active {
+       background: $bg-primary;
+       border-color: $accent-primary;
+       border-bottom: 1px solid $bg-primary;
+       margin-bottom: -1px;
+       z-index: 1;
+
+       .tab-content {
+         color: $text-primary;
+       }
+
+       .tab-status.connected .status-dot {
+         background: $success-color;
+         box-shadow: 0 0 6px rgba($success-color, 0.5);
+       }
+     }
+
+    &.connecting {
+      .tab-content {
+        opacity: 0.7;
+      }
+    }
+
+    .tab-content {
+      display: flex;
+      align-items: center;
+      flex: 1;
+      min-width: 0;
+      color: $text-muted;
+      font-size: 13px;
+    }
+
+    .tab-status {
+      margin-right: 8px;
+      display: flex;
+      align-items: center;
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: $text-muted;
+        opacity: 0.5;
+        transition: all $transition-fast;
+      }
+
+      &.connected .status-dot {
+        background: $success-color;
+        opacity: 1;
+        box-shadow: 0 0 4px rgba($success-color, 0.4);
+      }
+
+      &.connecting .connecting-spinner {
+        display: flex;
+        align-items: center;
+        color: $warning-color;
+      }
+
+      &.disconnected .status-dot {
+        background: $error-color;
+        opacity: 0.6;
+      }
+    }
+
+    .tab-name {
+      font-weight: 500;
+      margin-right: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .tab-host {
+      font-size: 11px;
+      opacity: 0.6;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 80px;
+    }
+
+    .tab-close {
+      margin-left: 8px;
+      padding: 2px;
+      background: none;
+      border: none;
+      color: $text-muted;
+      cursor: pointer;
+      border-radius: $border-radius-small;
+      transition: all $transition-fast;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+
+      &:hover {
+        background: rgba($error-color, 0.2);
+        color: $error-color;
+      }
+    }
+  }
+
+  .tabs-actions {
+    display: flex;
+    align-items: center;
+    margin-left: 12px;
+    gap: 6px;
+    flex-shrink: 0;
+
+    .add-tab-btn {
+      padding: 6px 8px;
+      background: $bg-tertiary;
+      border: 1px solid $border-color;
+      border-radius: $border-radius;
+      color: $text-muted;
+      cursor: pointer;
+      transition: all $transition-fast;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &:hover {
+        background: rgba($accent-primary, 0.1);
+        border-color: $accent-primary;
+        color: $accent-primary;
+      }
+    }
+
+    .disconnect-all-btn {
+      padding: 6px 8px;
+      background: rgba($error-color, 0.1);
+      border: 1px solid rgba($error-color, 0.3);
+      border-radius: $border-radius;
+      color: $error-color;
+      cursor: pointer;
+      transition: all $transition-fast;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &:hover {
+        background: rgba($error-color, 0.2);
+        border-color: $error-color;
+      }
+    }
+  }
+}
+
+// Responsive design for terminal tabs
+@media (max-width: $breakpoint-tablet) {
+  .terminal-tabs {
+    padding: 0 8px;
+    min-height: 36px;
+
+    .terminal-tab {
+      padding: 6px 8px;
+      min-width: 120px;
+      max-width: 160px;
+
+      .tab-content {
+        font-size: 12px;
+      }
+
+      .tab-host {
+        display: none;
+      }
+
+      .tab-close {
+        margin-left: 4px;
+      }
+    }
+
+    .tabs-actions {
+      margin-left: 8px;
+      gap: 4px;
+
+      .add-tab-btn,
+      .disconnect-all-btn {
+        padding: 4px 6px;
+      }
+    }
+  }
+}
+
+@media (max-width: $breakpoint-mobile) {
+  .terminal-tabs {
+    padding: 0 4px;
+    min-height: 32px;
+
+    .terminal-tab {
+      padding: 4px 6px;
+      min-width: 100px;
+      max-width: 120px;
+
+      .tab-content {
+        font-size: 11px;
+      }
+
+      .tab-status {
+        margin-right: 6px;
+
+        .status-dot {
+          width: 6px;
+          height: 6px;
+        }
+      }
+
+      .tab-name {
+        margin-right: 4px;
+      }
+    }
+
+    .tabs-actions {
+      margin-left: 4px;
+
+      .add-tab-btn,
+      .disconnect-all-btn {
+        padding: 3px 4px;
+      }
+    }
+  }
+}
+
+// When no tabs are present, hide the tabs container
+.terminal-tabs:empty {
+  display: none;
 } 

@@ -6,7 +6,7 @@ interface ServerSidebarProps {
   isOpen: boolean
   onToggle: () => void
   onConnect: (server: Server) => void
-  connectedServerId?: string
+  connectedServerIds?: string[]
   onDisconnect?: (serverId: string) => void
 }
 
@@ -17,7 +17,7 @@ const ServerSidebar: React.FC<ServerSidebarProps> = ({
   isOpen, 
   onToggle, 
   onConnect, 
-  connectedServerId, 
+  connectedServerIds = [], 
   onDisconnect
 }) => {
   const [servers, setServers] = useState<Server[]>([])
@@ -67,13 +67,13 @@ const ServerSidebar: React.FC<ServerSidebarProps> = ({
     filterAndSortServers()
   }, [servers, searchQuery, selectedCategory, sortBy])
 
-  // Sync server status when connectedServerId changes from outside
+  // Sync server status when connectedServerIds changes from outside
   useEffect(() => {
     if (servers.length > 0) {
       let hasChanges = false
       
       servers.forEach(server => {
-        const shouldBeConnected = server.id === connectedServerId
+        const shouldBeConnected = connectedServerIds.includes(server.id)
         const currentlyConnected = server.status === 'connected'
         
         if (shouldBeConnected && !currentlyConnected) {
@@ -89,7 +89,7 @@ const ServerSidebar: React.FC<ServerSidebarProps> = ({
         setServers([...serverService.getAllServers()])
       }
     }
-  }, [connectedServerId, servers])
+  }, [connectedServerIds, servers])
 
   const loadServers = async () => {
     try {
@@ -134,7 +134,7 @@ const ServerSidebar: React.FC<ServerSidebarProps> = ({
         case 'host':
           return a.host.localeCompare(b.host)
         case 'lastUsed':
-          // For now, sort by status (connected first)
+          // Sort by status (connected first), then by name
           if (a.status === 'connected' && b.status !== 'connected') return -1
           if (b.status === 'connected' && a.status !== 'connected') return 1
           return a.name.localeCompare(b.name)
@@ -223,19 +223,17 @@ const ServerSidebar: React.FC<ServerSidebarProps> = ({
   }
 
   const handleConnect = (server: Server) => {
+    // Check if server is already connected
+    if (connectedServerIds.includes(server.id)) {
+      // Server is already connected, no need to connect again
+      return
+    }
+    
     serverService.updateServerStatus(server.id, 'connecting')
     setServers([...serverService.getAllServers()])
     
-    setTimeout(() => {
-      serverService.updateServerStatus(server.id, 'connected')
-      servers.forEach(s => {
-        if (s.id !== server.id) {
-          serverService.updateServerStatus(s.id, 'disconnected')
-        }
-      })
-      setServers([...serverService.getAllServers()])
-      onConnect(server)
-    }, 1000)
+    // Call the onConnect callback - the parent will handle the actual connection
+    onConnect(server)
   }
 
   const handleDisconnect = (server: Server) => {
@@ -305,7 +303,12 @@ const ServerSidebar: React.FC<ServerSidebarProps> = ({
             </button>
             <div className="header-title">
               <h1>Server Manager</h1>
-              <span className="server-count">{servers.length} servers configured</span>
+              <span className="server-count">
+                {servers.length} servers configured
+                {connectedServerIds.length > 0 && (
+                  <span className="connected-count"> • {connectedServerIds.length} connected</span>
+                )}
+              </span>
             </div>
           </div>
           
@@ -464,7 +467,7 @@ const ServerSidebar: React.FC<ServerSidebarProps> = ({
                 {filteredServers.map(server => (
                   <div 
                     key={server.id} 
-                    className={`server-card ${server.status} ${connectedServerId === server.id ? 'active' : ''}`}
+                    className={`server-card ${server.status} ${connectedServerIds.includes(server.id) ? 'active' : ''}`}
                   >
                     <div className="server-card-header">
                       <div className="server-info">
@@ -501,7 +504,7 @@ const ServerSidebar: React.FC<ServerSidebarProps> = ({
                     </div>
 
                     <div className="server-card-actions">
-                      {server.status === 'disconnected' && (
+                      {server.status === 'disconnected' && !connectedServerIds.includes(server.id) && (
                         <button 
                           className="action-btn connect"
                           onClick={() => handleConnect(server)}
@@ -514,7 +517,7 @@ const ServerSidebar: React.FC<ServerSidebarProps> = ({
                         </button>
                       )}
                       
-                      {server.status === 'connected' && (
+                      {connectedServerIds.includes(server.id) && (
                         <button 
                           className="action-btn disconnect"
                           onClick={() => handleDisconnect(server)}
