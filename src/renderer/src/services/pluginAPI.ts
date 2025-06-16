@@ -116,8 +116,7 @@ export class PluginAPIService {
             throw new Error('No active terminal session')
           }
 
-          // Use the SSH write method to send the command
-          if (!window.electronAPI?.sshWrite) {
+          if (!window.electronAPI?.sshWrite || !window.electronAPI?.onSSHData) {
             throw new Error('SSH API not available')
           }
 
@@ -125,61 +124,180 @@ export class PluginAPIService {
             let output = ''
             let errorOutput = ''
             let isComplete = false
+            let timeoutId: NodeJS.Timeout
+            let inactivityTimeoutId: NodeJS.Timeout
+            let isListening = false
+            let lastOutputTime = Date.now()
+            let promptDetected = false
+            let initialPromptSeen = false
+            let commandExecuted = false
             
-            // Set up data listener to capture output
+            // Temporary data handler for this specific command execution
             const handleData = (sessionId: string, data: string) => {
-              if (sessionId === this.currentSession?.id) {
+              if (sessionId === this.currentSession?.id && isListening) {
                 output += data
+                lastOutputTime = Date.now()
                 
-                // Check if command is complete (simple heuristic)
-                if (data.includes('$') || data.includes('#') || data.includes('>')) {
-                  if (!isComplete) {
-                    isComplete = true
-                    cleanup()
-                    resolve({
-                      stdout: output,
-                      stderr: errorOutput,
-                      exitCode: 0,
-                      command
-                    })
+                // Immediate detection for very fast commands
+                if (data.includes('\n') && commandExecuted && !promptDetected) {
+                  const recentLines = data.split('\n')
+                  const lastRecentLine = recentLines[recentLines.length - 1] || recentLines[recentLines.length - 2] || ''
+                  
+                  if (lastRecentLine.match(/[@#$>]\s*$/) || lastRecentLine.match(/[@#$>]\s*\x1b/)) {
+                    promptDetected = true
+                    setTimeout(() => {
+                      cleanup()
+                      resolve(cleanOutput())
+                    }, 10) // Ultra-fast response for immediate prompt detection
+                    return
+                  }
+                }
+                
+                // Reset inactivity timeout
+                if (inactivityTimeoutId) {
+                  clearTimeout(inactivityTimeoutId)
+                }
+                // Shorter inactivity timeout for faster response
+                inactivityTimeoutId = setTimeout(checkInactivity, 3000)
+                
+                // Detect initial prompt (before command)
+                if (!initialPromptSeen && (data.includes('$') || data.includes('#') || data.includes('>'))) {
+                  initialPromptSeen = true
+                  return
+                }
+                
+                // Mark command as executed if we see it in output
+                if (!commandExecuted && output.includes(command)) {
+                  commandExecuted = true
+                }
+                
+                // Detect prompt return after command execution
+                if (initialPromptSeen && commandExecuted && !promptDetected) {
+                  const promptPatterns = [
+                    /\n[^@]*[@#$>]\s*$/,
+                    /\n.*[@#$>]\s*\x1b/,
+                    /[@#$>]\s*$/,
+                    /\$\s*$/,
+                    /#\s*$/,
+                    />\s*$/,
+                    /~\s*\$\s*$/,
+                    /]\s*\$\s*$/
+                  ]
+                  
+                  for (const pattern of promptPatterns) {
+                    if (pattern.test(output)) {
+                      promptDetected = true
+                      // Reduce delay for faster response
+                      setTimeout(() => {
+                        cleanup()
+                        resolve(cleanOutput())
+                      }, 50) // Reduced from 200ms to 50ms
+                      return
+                    }
+                  }
+                }
+                
+                // Quick detection for fast commands - if we see command output and then a new line with prompt-like pattern
+                if (commandExecuted && !promptDetected) {
+                  const lines = output.split('\n')
+                  const lastLine = lines[lines.length - 1] || ''
+                  const secondLastLine = lines[lines.length - 2] || ''
+                  
+                  // If last line looks like a prompt and we have some output
+                  if (lastLine.match(/[@#$>]\s*$/) && lines.length > 2) {
+                    promptDetected = true
+                    setTimeout(() => {
+                      cleanup()
+                      resolve(cleanOutput())
+                    }, 30) // Very quick response for obvious prompts
+                    return
+                  }
+                  
+                  // If we have output and the last few characters suggest command completion
+                  if (output.length > command.length + 10 && 
+                      (lastLine.includes('$') || lastLine.includes('#') || lastLine.includes('>'))) {
+                    promptDetected = true
+                    setTimeout(() => {
+                      cleanup()
+                      resolve(cleanOutput())
+                    }, 30)
+                    return
                   }
                 }
               }
             }
 
-            const cleanup = () => {
-              if (window.electronAPI?.offSSHData) {
-                window.electronAPI.offSSHData()
+            const cleanOutput = () => {
+              let cleanedOutput = output
+                .replace(/\r\n/g, '\n')
+                .replace(/\r/g, '\n')
+                .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')
+                .replace(new RegExp(`^.*${command.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*\n?`), '')
+                .replace(/\n.*[@#$>]\s*$/, '')
+                .replace(/^\n+/, '')
+                .replace(/\n+$/, '')
+                .trim()
+
+              return {
+                stdout: cleanedOutput,
+                stderr: errorOutput,
+                exitCode: 0,
+                command
               }
             }
 
-            // Set up timeout
-            const timeout = setTimeout(() => {
-              if (!isComplete) {
-                isComplete = true
-                cleanup()
-                resolve({
-                  stdout: output,
-                  stderr: errorOutput,
-                  exitCode: 0,
-                  command
-                })
-              }
-            }, options?.timeout || 10000)
+            const cleanup = () => {
+              if (timeoutId) clearTimeout(timeoutId)
+              if (inactivityTimeoutId) clearTimeout(inactivityTimeoutId)
+              isListening = false
+              
+              // Don't call offSSHData() as it removes ALL SSH listeners
+              // Just set isListening to false to stop this specific handler
+            }
 
-            // Listen for SSH data
+            const checkInactivity = () => {
+              if (isListening) {
+                const timeSinceLastOutput = Date.now() - lastOutputTime
+                
+                // Faster inactivity detection for quick commands
+                if (timeSinceLastOutput >= 3000 && (output.trim() || commandExecuted)) {
+                  cleanup()
+                  resolve(cleanOutput())
+                  return
+                }
+              }
+            }
+
+            // Start listening temporarily
+            isListening = true
             if (window.electronAPI?.onSSHData) {
               window.electronAPI.onSSHData(handleData)
             }
 
-            // Send the command
-            const fullCommand = command + '\n'
-            window.electronAPI.sshWrite(this.currentSession.id, fullCommand)
-              .catch((error) => {
-                cleanup()
-                clearTimeout(timeout)
-                reject(new Error(`Failed to send command: ${error.message}`))
-              })
+            // Set main timeout
+            timeoutId = setTimeout(() => {
+              cleanup()
+              if (output.trim()) {
+                resolve(cleanOutput())
+              } else {
+                reject(new Error(`Timeout: Command '${command}' took more than ${options?.timeout || 30000}ms to execute`))
+              }
+            }, options?.timeout || 30000)
+
+            // Execute the command
+            if (window.electronAPI?.sshWrite) {
+              window.electronAPI.sshWrite(this.currentSession!.id, command + '\n')
+                .catch((error) => {
+                  cleanup()
+                  reject(new Error(`Failed to send command: ${error.message}`))
+                })
+            } else {
+              cleanup()
+              reject(new Error('SSH API not available'))
+            }
+
+            // Start inactivity monitoring with shorter initial timeout
+            inactivityTimeoutId = setTimeout(checkInactivity, 3000)
           })
         } catch (error) {
           throw new Error(`Command execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
@@ -202,9 +320,11 @@ export class PluginAPIService {
 
           return new Promise((resolve, reject) => {
             let isComplete = false
+            let isListening = false
+            let timeoutId: NodeJS.Timeout
             
             const handleData = (sessionId: string, data: string) => {
-              if (sessionId === this.currentSession?.id) {
+              if (sessionId === this.currentSession?.id && isListening) {
                 onData(data)
                 
                 // Check if command is complete
@@ -219,31 +339,39 @@ export class PluginAPIService {
             }
 
             const cleanup = () => {
-              if (window.electronAPI?.offSSHData) {
-                window.electronAPI.offSSHData()
-              }
+              if (timeoutId) clearTimeout(timeoutId)
+              isListening = false
+              
+              // Don't call offSSHData() as it removes ALL SSH listeners
+              // Just set isListening to false to stop this specific handler
             }
 
-            // Set up timeout
-            const timeout = setTimeout(() => {
+            // Start listening temporarily
+            isListening = true
+            if (window.electronAPI?.onSSHData) {
+              window.electronAPI.onSSHData(handleData)
+            }
+
+            // Set timeout
+            timeoutId = setTimeout(() => {
               if (!isComplete) {
                 isComplete = true
                 cleanup()
                 resolve()
               }
-            }, 30000) // 30 second timeout for streaming
-
-            // Listen for SSH data
-            window.electronAPI.onSSHData(handleData)
+            }, 30000)
 
             // Send the command
-            const fullCommand = command + '\n'
-            window.electronAPI.sshWrite(this.currentSession.id, fullCommand)
-              .catch((error) => {
-                cleanup()
-                clearTimeout(timeout)
-                reject(new Error(`Failed to send command: ${error.message}`))
-              })
+            if (window.electronAPI?.sshWrite) {
+              window.electronAPI.sshWrite(this.currentSession!.id, command + '\n')
+                .catch((error) => {
+                  cleanup()
+                  reject(new Error(`Failed to send command: ${error.message}`))
+                })
+            } else {
+              cleanup()
+              reject(new Error('SSH API not available'))
+            }
           })
         } catch (error) {
           throw new Error(`Streaming execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
@@ -635,6 +763,95 @@ export class PluginAPIService {
    */
   getEventEmitter(): SimpleEventEmitter {
     return this.eventEmitter
+  }
+
+  /**
+   * Test method to verify plugin API functionality
+   */
+  async testPluginAPI(sessionId: string): Promise<boolean> {
+    if (!this.currentSession || this.currentSession.id !== sessionId) {
+      console.log('No active session for plugin API test')
+      return false
+    }
+
+    try {
+      // Create a test SDK
+      const testManifest = {
+        name: 'test-plugin',
+        displayName: 'Test Plugin',
+        version: '1.0.0',
+        permissions: ['terminal.execute', 'terminal.read']
+      }
+
+      const sdk = this.createSDK(testManifest as any)
+      
+      // Test simple command execution
+      const result = await sdk.terminal.execute('echo "Plugin API Test"', { timeout: 5000 })
+      
+      console.log('Plugin API test result:', result)
+      
+      return result.exitCode === 0 && result.stdout.includes('Plugin API Test')
+    } catch (error) {
+      console.error('Plugin API test failed:', error)
+      return false
+    }
+  }
+
+  /**
+   * Test command execution speed for debugging
+   */
+  async testCommandSpeed(sessionId: string, command: string): Promise<{ duration: number, result: any }> {
+    if (!this.currentSession || this.currentSession.id !== sessionId) {
+      throw new Error('No active session for speed test')
+    }
+
+    try {
+      const testManifest = {
+        name: 'speed-test-plugin',
+        displayName: 'Speed Test Plugin',
+        version: '1.0.0',
+        permissions: ['terminal.execute', 'terminal.read']
+      }
+
+      const sdk = this.createSDK(testManifest as any)
+      
+      const startTime = Date.now()
+      const result = await sdk.terminal.execute(command, { timeout: 5000 })
+      const duration = Date.now() - startTime
+      
+      console.log(`Command "${command}" took ${duration}ms to execute`)
+      
+      return { duration, result }
+    } catch (error) {
+      console.error('Speed test failed:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Test that terminal input still works after plugin command execution
+   */
+  async testTerminalAfterPlugin(sessionId: string): Promise<boolean> {
+    try {
+      console.log('Testing terminal functionality after plugin command...')
+      
+      // Execute a simple plugin command
+      await this.testCommandSpeed(sessionId, 'echo "Plugin test"')
+      
+      // Wait a moment
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      // Try to execute another command to verify terminal still works
+      const result = await this.testCommandSpeed(sessionId, 'echo "Terminal still works"')
+      
+      const success = result.result.stdout.includes('Terminal still works')
+      console.log('Terminal functionality test:', success ? 'PASSED' : 'FAILED')
+      
+      return success
+    } catch (error) {
+      console.error('Terminal functionality test FAILED:', error)
+      return false
+    }
   }
 }
 

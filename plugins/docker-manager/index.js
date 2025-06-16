@@ -36,10 +36,26 @@ class DockerManagerPlugin {
       
       console.log(`Docker Manager: Added sidebar panel ${this.panelId}`)
       
-      // Load saved preferences (don't check Docker yet - no connection)
+      // Load saved preferences
       await this.loadPreferences(sdk)
       
-      console.log('Docker Manager: Waiting for server connection to check Docker availability...')
+      // Check if there's already an active session
+      const currentSession = sdk.terminal.getCurrentSession()
+      if (currentSession) {
+        console.log('Docker Manager: Found existing session, checking Docker availability with delay...')
+        // Add delay even for existing sessions to ensure they're stable
+        setTimeout(async () => {
+          await this.checkDockerAvailability(sdk)
+          
+          if (this.isDockerAvailable) {
+            sdk.ui.showNotification('Docker detected on server!', 'success')
+          } else {
+            sdk.ui.showNotification('Docker not found on this server', 'warning')
+          }
+        }, 1500) // 1.5 second delay for existing sessions
+      } else {
+        console.log('Docker Manager: Waiting for server connection to check Docker availability...')
+      }
       
     } catch (error) {
       console.error('Docker Manager plugin load error:', error)
@@ -57,16 +73,19 @@ class DockerManagerPlugin {
   async onServerConnect(serverInfo) {
     console.log(`Docker Manager: Connected to ${serverInfo.host}`)
     
-    // Now we can check Docker availability since we have a connection
-    if (this.sdk) {
-      await this.checkDockerAvailability(this.sdk)
-      
-      if (this.isDockerAvailable) {
-        this.sdk.ui.showNotification('Docker detected on server!', 'success')
-      } else {
-        this.sdk.ui.showNotification('Docker not found on this server', 'warning')
+    // Add a small additional delay to ensure the session is fully ready
+    setTimeout(async () => {
+      if (this.sdk) {
+        console.log('Docker Manager: Checking Docker availability after connection stabilization...')
+        await this.checkDockerAvailability(this.sdk)
+        
+        if (this.isDockerAvailable) {
+          this.sdk.ui.showNotification('Docker detected on server!', 'success')
+        } else {
+          this.sdk.ui.showNotification('Docker not found on this server', 'warning')
+        }
       }
-    }
+    }, 1000) // Additional 1 second delay
   }
 
   // Called when server connection is lost
@@ -85,18 +104,49 @@ class DockerManagerPlugin {
   async checkDockerAvailability(sdk) {
     try {
       console.log('Checking Docker availability...')
-      const result = await sdk.terminal.execute('docker --version')
       
-      if (result.exitCode === 0) {
-        this.isDockerAvailable = true
-        console.log('Docker is available:', result.stdout.trim())
-      } else {
-        this.isDockerAvailable = false
-        console.log('Docker not available - exit code:', result.exitCode)
+      // Try with a longer timeout and simpler command first
+      const result = await sdk.terminal.execute('which docker', { timeout: 15000 })
+      
+      if (result.exitCode === 0 && result.stdout && result.stdout.trim()) {
+        // Docker binary exists, now check version
+        try {
+          const versionResult = await sdk.terminal.execute('docker --version', { timeout: 10000 })
+          if (versionResult.exitCode === 0 && versionResult.stdout) {
+            this.isDockerAvailable = true
+            console.log('Docker is available:', versionResult.stdout.trim())
+            return true
+          }
+        } catch (versionError) {
+          console.log('Docker binary found but version check failed:', versionError.message)
+        }
       }
+      
+      // If we get here, Docker is not available
+      this.isDockerAvailable = false
+      console.log('Docker not available - binary not found or not accessible')
+      return false
+      
     } catch (error) {
       console.log('Error checking Docker availability:', error.message)
+      
+      // If it's a timeout error, try one more time with a basic test
+      if (error.message.includes('Timeout')) {
+        console.log('Timeout occurred, trying basic Docker test...')
+        try {
+          const basicResult = await sdk.terminal.execute('docker info --format "{{.ServerVersion}}"', { timeout: 20000 })
+          if (basicResult.exitCode === 0) {
+            this.isDockerAvailable = true
+            console.log('Docker is available (detected via docker info)')
+            return true
+          }
+        } catch (basicError) {
+          console.log('Basic Docker test also failed:', basicError.message)
+        }
+      }
+      
       this.isDockerAvailable = false
+      return false
     }
   }
 
@@ -194,26 +244,28 @@ class DockerManagerPlugin {
         setIsLoading(true)
         try {
           console.log('Refreshing containers...')
-          // Use basic docker ps command without custom formatting
-          const result = await self.sdk.terminal.execute('docker ps -a')
+          // Use the improved plugin API that handles output properly
+          const result = await self.sdk.terminal.execute('docker ps -a --format "{{.ID}}|{{.Names}}|{{.Status}}|{{.Image}}"', {
+            timeout: 8000 // Reduced timeout for faster response
+          })
           
           if (result.exitCode === 0 && result.stdout) {
             console.log('Docker ps output:', result.stdout)
             
-            // Parse the standard docker ps output
+            // Parse the formatted output
             const lines = result.stdout.split('\n').filter(line => line.trim())
             const containerList = []
             
-            // Skip header line and parse each container line
-            for (let i = 1; i < lines.length; i++) {
-              const line = lines[i].trim()
-              if (line) {
-                // Extract container name (last column before ports)
-                const parts = line.split(/\s+/)
-                if (parts.length >= 2) {
-                  const name = parts[parts.length - 1] // Container name is usually the last column
-                  const status = line.includes('Up') ? 'Running' : 'Stopped'
-                  containerList.push({ name, status, image: parts[1] || 'Unknown' })
+            for (const line of lines) {
+              if (line.includes('|')) {
+                const [id, name, status, image] = line.split('|')
+                if (name && name.trim()) {
+                  containerList.push({ 
+                    id: id?.trim() || 'unknown',
+                    name: name.trim(), 
+                    status: status?.trim() || 'unknown', 
+                    image: image?.trim() || 'unknown' 
+                  })
                 }
               }
             }
@@ -229,7 +281,7 @@ class DockerManagerPlugin {
           }
         } catch (error) {
           console.error('Failed to refresh containers:', error)
-          self.sdk.ui.showNotification('Failed to refresh containers', 'error')
+          self.sdk.ui.showNotification('Failed to refresh containers: ' + error.message, 'error')
         } finally {
           setIsLoading(false)
         }
@@ -242,26 +294,28 @@ class DockerManagerPlugin {
         setIsLoading(true)
         try {
           console.log('Refreshing images...')
-          // Use basic docker images command without custom formatting
-          const result = await self.sdk.terminal.execute('docker images')
+          // Use the improved plugin API that handles output properly
+          const result = await self.sdk.terminal.execute('docker images --format "{{.ID}}|{{.Repository}}|{{.Tag}}|{{.Size}}"', {
+            timeout: 8000 // Reduced timeout for faster response
+          })
           
           if (result.exitCode === 0 && result.stdout) {
             console.log('Docker images output:', result.stdout)
             
-            // Parse the standard docker images output
+            // Parse the formatted output
             const lines = result.stdout.split('\n').filter(line => line.trim())
             const imageList = []
             
-            // Skip header line and parse each image line
-            for (let i = 1; i < lines.length; i++) {
-              const line = lines[i].trim()
-              if (line) {
-                const parts = line.split(/\s+/)
-                if (parts.length >= 3) {
-                  const repository = parts[0] || 'Unknown'
-                  const tag = parts[1] || 'Unknown'
-                  const size = parts[parts.length - 1] || 'Unknown' // Size is usually the last column
-                  imageList.push({ repository, tag, size })
+            for (const line of lines) {
+              if (line.includes('|')) {
+                const [id, repository, tag, size] = line.split('|')
+                if (repository && repository.trim()) {
+                  imageList.push({ 
+                    id: id?.trim() || 'unknown',
+                    repository: repository.trim(), 
+                    tag: tag?.trim() || 'latest', 
+                    size: size?.trim() || 'unknown' 
+                  })
                 }
               }
             }
@@ -277,7 +331,7 @@ class DockerManagerPlugin {
           }
         } catch (error) {
           console.error('Failed to refresh images:', error)
-          self.sdk.ui.showNotification('Failed to refresh images', 'error')
+          self.sdk.ui.showNotification('Failed to refresh images: ' + error.message, 'error')
         } finally {
           setIsLoading(false)
         }
@@ -393,11 +447,15 @@ class DockerManagerPlugin {
                   onClick: async () => {
                     if (self.sdk) {
                       try {
-                        await self.sdk.terminal.execute(`docker start ${container.name}`)
-                        self.sdk.ui.showNotification(`Starting ${container.name}...`, 'info')
+                        const result = await self.sdk.terminal.execute(`docker start ${container.name}`, { timeout: 10000 })
+                        if (result.exitCode === 0) {
+                          self.sdk.ui.showNotification(`Started ${container.name}`, 'success')
+                        } else {
+                          self.sdk.ui.showNotification(`Failed to start ${container.name}: ${result.stderr}`, 'error')
+                        }
                         setTimeout(() => handleRefreshContainers(), 2000)
                       } catch (error) {
-                        self.sdk.ui.showNotification(`Failed to start ${container.name}`, 'error')
+                        self.sdk.ui.showNotification(`Failed to start ${container.name}: ${error.message}`, 'error')
                       }
                     }
                   }
@@ -418,11 +476,15 @@ class DockerManagerPlugin {
                   onClick: async () => {
                     if (self.sdk) {
                       try {
-                        await self.sdk.terminal.execute(`docker stop ${container.name}`)
-                        self.sdk.ui.showNotification(`Stopping ${container.name}...`, 'info')
+                        const result = await self.sdk.terminal.execute(`docker stop ${container.name}`, { timeout: 15000 })
+                        if (result.exitCode === 0) {
+                          self.sdk.ui.showNotification(`Stopped ${container.name}`, 'success')
+                        } else {
+                          self.sdk.ui.showNotification(`Failed to stop ${container.name}: ${result.stderr}`, 'error')
+                        }
                         setTimeout(() => handleRefreshContainers(), 2000)
                       } catch (error) {
-                        self.sdk.ui.showNotification(`Failed to stop ${container.name}`, 'error')
+                        self.sdk.ui.showNotification(`Failed to stop ${container.name}: ${error.message}`, 'error')
                       }
                     }
                   }
@@ -443,11 +505,15 @@ class DockerManagerPlugin {
                   onClick: async () => {
                     if (self.sdk) {
                       try {
-                        await self.sdk.terminal.execute(`docker restart ${container.name}`)
-                        self.sdk.ui.showNotification(`Restarting ${container.name}...`, 'info')
+                        const result = await self.sdk.terminal.execute(`docker restart ${container.name}`, { timeout: 20000 })
+                        if (result.exitCode === 0) {
+                          self.sdk.ui.showNotification(`Restarted ${container.name}`, 'success')
+                        } else {
+                          self.sdk.ui.showNotification(`Failed to restart ${container.name}: ${result.stderr}`, 'error')
+                        }
                         setTimeout(() => handleRefreshContainers(), 3000)
                       } catch (error) {
-                        self.sdk.ui.showNotification(`Failed to restart ${container.name}`, 'error')
+                        self.sdk.ui.showNotification(`Failed to restart ${container.name}: ${error.message}`, 'error')
                       }
                     }
                   }

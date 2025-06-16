@@ -233,7 +233,7 @@ function App() {
       // Automatically open AI Assistant panel when connected
       setIsAIAssistantOpen(true)
 
-      // Notify plugins about server connection
+      // Notify plugins about server connection with a delay to ensure session is stable
       const sessionInfo = {
         id: sessionId,
         host: server.host,
@@ -243,7 +243,11 @@ function App() {
         currentDirectory: '~'
       }
       
-      await pluginManager.onServerConnect(sessionInfo)
+      // Wait a bit for the SSH session to be fully established before notifying plugins
+      setTimeout(async () => {
+        await pluginManager.onServerConnect(sessionInfo)
+        console.log('Plugins notified about server connection')
+      }, 2000) // 2 second delay
       
       console.log(`Connected to ${server.name}`)
     } catch (error: any) {
