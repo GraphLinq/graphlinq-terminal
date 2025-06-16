@@ -1,14 +1,20 @@
 # Docker Manager Plugin
 
-A comprehensive Docker management plugin for GraphLinq Terminal that allows you to manage Docker containers, images, and networks directly from the terminal interface.
+A comprehensive Docker management plugin for GraphLinq Terminal built with Vue.js that allows you to manage Docker containers, images, networks, and volumes directly from the terminal interface.
 
 ## Features
 
-- **Container Management**: Start, stop, restart, and remove Docker containers
-- **Image Management**: View, pull, and remove Docker images
-- **Real-time Status**: Live updates of container and image status
+- **Modern Vue.js Interface**: Clean, responsive tabbed interface
+- **Container Management**: Start, stop, restart, and remove Docker containers with real-time status
+- **Image Management**: View, pull, run, and remove Docker images
+- **Network Management**: View and manage Docker networks
+- **Volume Management**: View and manage Docker volumes
+- **Tabbed Navigation**: Separate tabs for containers, images, networks, and volumes
+- **Search & Filter**: Real-time search across all Docker resources
+- **Real-time Status**: Live updates with color-coded status indicators
 - **Sidebar Integration**: Dedicated Docker panel in the sidebar
 - **Notifications**: Real-time feedback for all operations
+- **Responsive Design**: Works on all screen sizes
 - **Persistent Settings**: Save and restore plugin preferences
 
 ## Requirements
@@ -96,35 +102,60 @@ docker rmi <image_id>
 ```
 docker-manager/
 ├── manifest.json       # Plugin metadata
-├── index.js           # Main plugin code
+├── index.js           # Main plugin code with Vue.js interface
+├── styles.css         # CSS styles for the interface
 ├── README.md          # Documentation
-└── components/        # React components (future)
-    ├── DockerPanel.tsx
-    ├── ContainerList.tsx
-    └── ImageList.tsx
+└── components/        # Vue.js components (future expansion)
+    ├── DockerPanel.vue
+    ├── ContainerTab.vue
+    ├── ImageTab.vue
+    ├── NetworkTab.vue
+    └── VolumeTab.vue
 ```
 
 ### API Usage
 
-The plugin demonstrates usage of the GraphLinq Terminal Plugin API:
+The plugin demonstrates usage of the GraphLinq Terminal Plugin API with Vue.js:
 
 ```javascript
 // Terminal API
-const result = await sdk.terminal.execute('docker ps')
+const result = await sdk.terminal.execute('docker ps -a --format "{{.ID}}|{{.Names}}|{{.Status}}|{{.Image}}"')
 
-// UI API
+// UI API with Vue.js component
 const panelId = sdk.ui.addSidebarPanel({
   id: 'docker-panel',
   title: 'Docker',
-  component: DockerPanel
+  icon: '🐳',
+  component: this.createDockerPanel() // Returns Vue.js component
 })
 
 // Notification API
 sdk.ui.showNotification('Container started!', 'success')
 
 // Storage API
-await sdk.storage.set('preferences', { autoRefresh: true })
+await sdk.storage.set('preferences', { autoRefresh: true, activeTab: 'containers' })
 const prefs = await sdk.storage.get('preferences')
+```
+
+### Vue.js Implementation
+
+The plugin uses Vue.js 3 Composition API for a modern, reactive interface:
+
+```javascript
+// Vue.js setup function
+setup() {
+  const activeTab = ref('containers')
+  const containers = ref([])
+  const isLoading = ref(false)
+  
+  const refreshData = async () => {
+    isLoading.value = true
+    containers.value = await self.refreshContainers()
+    isLoading.value = false
+  }
+  
+  return { activeTab, containers, isLoading, refreshData }
+}
 ```
 
 ### Lifecycle Hooks
