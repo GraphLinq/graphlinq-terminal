@@ -8,6 +8,7 @@ import SSHKeyGeneratorModal from './components/SSHKeyGeneratorModal'
 import FileExplorer from './components/FileExplorer'
 import PluginManager from './components/PluginManager/PluginManager'
 import PluginPanels from './components/PluginPanels/PluginPanels'
+import NotificationSystem, { Notification } from './components/NotificationSystem'
 import { Server } from './services/serverService'
 import { sshService, SSHConnectionConfig } from './services/sshService'
 import { pluginManager } from './services/pluginManager'
@@ -43,6 +44,7 @@ function App() {
   const [isSSHKeyGenModalOpen, setIsSSHKeyGenModalOpen] = useState(false)
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState(false)
   const [isPluginManagerOpen, setIsPluginManagerOpen] = useState(false)
+  const [notifications, setNotifications] = useState<Notification[]>([])
 
   // Get platform info
   useEffect(() => {
@@ -64,8 +66,7 @@ function App() {
         // Set up plugin API callbacks
         pluginAPI.setUICallbacks({
           showNotification: (message: string, type: 'info' | 'success' | 'warning' | 'error') => {
-            console.log(`[Plugin Notification - ${type.toUpperCase()}] ${message}`)
-            // Here you would integrate with your notification system
+            addNotification(message, type)
           },
           openModal: async (component: React.ComponentType, props?: any) => {
             console.log('Plugin requested to open modal:', component, props)
@@ -76,6 +77,9 @@ function App() {
         
         console.log('Plugin system initialized successfully')
         console.log('Loaded plugins:', pluginManager.getLoadedPlugins().map(p => p.manifest.displayName))
+        
+        // Show welcome notification
+        addNotification('GraphLinq Terminal ready!', 'success')
       } catch (error) {
         console.error('Failed to initialize plugin system:', error)
       }
@@ -199,6 +203,23 @@ function App() {
     window.dispatchEvent(event);
   }
 
+  // Notification system functions
+  const addNotification = (message: string, type: 'info' | 'success' | 'warning' | 'error', duration?: number) => {
+    const notification: Notification = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      message,
+      type,
+      duration: duration || (type === 'error' ? 8000 : 5000),
+      timestamp: Date.now()
+    }
+    
+    setNotifications(prev => [...prev, notification])
+  }
+
+  const removeNotification = (id: string) => {
+    setNotifications(prev => prev.filter(notification => notification.id !== id))
+  }
+
   // Handle server connection from sidebar
   const handleServerConnect = async (server: Server) => {
     if (isConnecting) return
@@ -226,6 +247,9 @@ function App() {
       setIsConnected(true)
       setConnectedServer(server)
       setSshSessionId(sessionId)
+      
+      // Show connection success notification
+      addNotification(`Connected to ${server.name} (${server.host})`, 'success')
       
       // Close sidebar after connection
       setSidebarOpen(false)
@@ -274,6 +298,9 @@ function App() {
     setIsConnected(false)
     setConnectedServer(null)
     setSshSessionId(null)
+    
+    // Show disconnection notification
+    addNotification('Disconnected from server', 'info')
     
     // Close AI Assistant panel when disconnected
     setIsAIAssistantOpen(false)
@@ -586,6 +613,12 @@ function App() {
       <PluginManager
         isOpen={isPluginManagerOpen}
         onClose={() => setIsPluginManagerOpen(false)}
+      />
+
+      {/* Notification System */}
+      <NotificationSystem
+        notifications={notifications}
+        onRemoveNotification={removeNotification}
       />
     </div>
   )
