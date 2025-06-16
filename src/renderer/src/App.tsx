@@ -46,6 +46,7 @@ function App() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const terminalHandlersRef = useRef<Map<string, (data: string) => void>>(new Map())
   const [isOptionsModalOpen, setIsOptionsModalOpen] = useState(false)
   const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false)
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false)
@@ -149,6 +150,37 @@ function App() {
       pluginAPI.setCurrentSession(null)
     }
   }, [activeSessionId, terminalSessions])
+
+  // Global SSH data handler setup
+  useEffect(() => {
+    const handleGlobalSSHData = (sessionId: string, data: string) => {
+      const handler = terminalHandlersRef.current.get(sessionId)
+      if (handler) {
+        handler(data)
+      }
+    }
+
+    // Set up global SSH data listener once
+    if ((window as any).electronAPI?.onSSHData) {
+      (window as any).electronAPI.onSSHData(handleGlobalSSHData)
+    }
+
+    return () => {
+      // Clean up SSH listeners when app unmounts
+      if ((window as any).electronAPI?.offSSHData) {
+        (window as any).electronAPI.offSSHData()
+      }
+    }
+  }, [])
+
+  // Register/unregister terminal handlers
+  const registerTerminalHandler = (sessionId: string, handler: (data: string) => void) => {
+    terminalHandlersRef.current.set(sessionId, handler)
+  }
+
+  const unregisterTerminalHandler = (sessionId: string) => {
+    terminalHandlersRef.current.delete(sessionId)
+  }
 
   // Handle window controls
   const handleMinimize = async () => {
@@ -743,15 +775,36 @@ function App() {
       <TerminalTabs />
       
       <div className="terminal-body">
-        <Terminal
-          sessionId={activeSession?.sessionId || null}
-          isConnected={activeSession?.isConnected || false}
-          onDisconnect={() => {
-            if (activeSession) {
-              handleSessionDisconnect(activeSession.id)
-            }
-          }}
-        />
+        {/* Render all terminal instances, but only show the active one */}
+        {terminalSessions.map(session => (
+          <div
+            key={session.id}
+            className={`terminal-instance ${activeSessionId === session.id ? 'visible' : 'hidden'}`}
+          >
+            <Terminal
+              sessionId={session.sessionId || session.id}
+              isConnected={session.isConnected}
+              onDisconnect={() => handleSessionDisconnect(session.id)}
+              isVisible={activeSessionId === session.id}
+              onRegisterHandler={registerTerminalHandler}
+              onUnregisterHandler={unregisterTerminalHandler}
+            />
+          </div>
+        ))}
+        
+        {/* Show welcome screen when no sessions */}
+        {terminalSessions.length === 0 && (
+          <div className="terminal-instance visible">
+            <Terminal
+              sessionId={null}
+              isConnected={false}
+              onDisconnect={() => {}}
+              isVisible={true}
+              onRegisterHandler={registerTerminalHandler}
+              onUnregisterHandler={unregisterTerminalHandler}
+            />
+          </div>
+        )}
         
         {/* Panel Assistant IA */}
         <AIAssistantPanel

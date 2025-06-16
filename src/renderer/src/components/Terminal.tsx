@@ -11,9 +11,19 @@ interface TerminalProps {
   sessionId: string | null
   isConnected: boolean
   onDisconnect: () => void
+  isVisible?: boolean
+  onRegisterHandler?: (sessionId: string, handler: (data: string) => void) => void
+  onUnregisterHandler?: (sessionId: string) => void
 }
 
-const Terminal: React.FC<TerminalProps> = ({ sessionId, isConnected, onDisconnect }) => {
+const Terminal: React.FC<TerminalProps> = ({ 
+  sessionId, 
+  isConnected, 
+  onDisconnect, 
+  isVisible = true,
+  onRegisterHandler,
+  onUnregisterHandler
+}) => {
   const terminalRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<XTerm | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
@@ -21,6 +31,22 @@ const Terminal: React.FC<TerminalProps> = ({ sessionId, isConnected, onDisconnec
   const [isOptionsModalOpen, setIsOptionsModalOpen] = useState<boolean>(false)
   const [currentWorkingDirectory, setCurrentWorkingDirectory] = useState<string>('/home')
   const [terminalOptions, setTerminalOptions] = useState<TerminalOptions>({})
+  const sessionIdRef = useRef<string | null>(sessionId)
+
+  // Update sessionId ref when sessionId changes
+  useEffect(() => {
+    sessionIdRef.current = sessionId
+  }, [sessionId])
+
+  // Handle terminal visibility changes
+  useEffect(() => {
+    if (isVisible && xtermRef.current && fitAddonRef.current) {
+      // When terminal becomes visible again, refit it
+      setTimeout(() => {
+        fitAddonRef.current?.fit()
+      }, 50)
+    }
+  }, [isVisible])
 
   // Handle options change from modal
   const handleOptionsChange = useCallback((options: TerminalOptions) => {
@@ -272,19 +298,29 @@ const Terminal: React.FC<TerminalProps> = ({ sessionId, isConnected, onDisconnec
     // Set the saved options to state
     setTerminalOptions(savedOptions);
 
-    // Handle data input from user
+    // Handle data input from user - use ref to get current sessionId
     terminal.onData((data) => {
-      if (!isConnected || !sessionId) return
+      const currentSessionId = sessionIdRef.current
+      console.log(`Terminal input: sessionId=${currentSessionId}, data="${data}"`)
+      
+      // Allow input if we have a sessionId (even if still connecting) and it's not null
+      if (!currentSessionId || currentSessionId === null) {
+        console.log('Terminal input blocked: no valid sessionId')
+        return
+      }
 
-      // Send data to SSH session
+      // Send data to SSH session - this will work for both connected and connecting sessions
       if (window.electronAPI?.sshWrite) {
-        window.electronAPI.sshWrite(sessionId, data)
+        console.log(`Sending SSH data to session ${currentSessionId}`)
+        window.electronAPI.sshWrite(currentSessionId, data)
+      } else {
+        console.log('SSH write API not available')
       }
     })
 
     // Handle terminal resize
     terminal.onResize(({ cols, rows }) => {
-      if (sessionId && isConnected && (window as any).electronAPI?.sshResize) {
+      if (sessionId && sessionId !== null && (window as any).electronAPI?.sshResize) {
         (window as any).electronAPI.sshResize(sessionId, cols, rows)
       }
     })
@@ -306,7 +342,7 @@ const Terminal: React.FC<TerminalProps> = ({ sessionId, isConnected, onDisconnec
         searchAddonRef.current = null
       }
     }
-  }, [isConnected, sessionId])
+  }, []) // Remove isConnected and sessionId from dependencies to prevent recreation
 
   // Get current command line from terminal
   const getCurrentCommandLine = useCallback((terminal: XTerm): string => {
@@ -395,49 +431,43 @@ const Terminal: React.FC<TerminalProps> = ({ sessionId, isConnected, onDisconnec
     return false
   }, [currentWorkingDirectory, sessionId])
 
-  // Handle SSH data
+  // Handle SSH data using the centralized handler system
   useEffect(() => {
-    if (!sessionId || !isConnected || !xtermRef.current) return
+    if (!sessionId || sessionId === null || !xtermRef.current || !onRegisterHandler) return
 
-    const handleSSHData = (receivedSessionId: string, data: string) => {
-      if (receivedSessionId === sessionId && xtermRef.current) {
+    const handleSSHData = (data: string) => {
+      if (xtermRef.current && isVisible) {
         xtermRef.current.write(data)
       }
     }
 
-    // Clean up existing listeners
-    if ((window as any).electronAPI?.offSSHData) {
-      (window as any).electronAPI.offSSHData()
-    }
-
-    // Add new listener
-    if ((window as any).electronAPI?.onSSHData) {
-      (window as any).electronAPI.onSSHData(handleSSHData)
-    }
+    // Register this terminal's handler with the parent
+    onRegisterHandler(sessionId, handleSSHData)
 
     return () => {
-      if ((window as any).electronAPI?.offSSHData) {
-        (window as any).electronAPI.offSSHData()
+      // Unregister handler when component unmounts or sessionId changes
+      if (onUnregisterHandler) {
+        onUnregisterHandler(sessionId)
       }
     }
-  }, [sessionId, isConnected])
+  }, [sessionId, isVisible, onRegisterHandler, onUnregisterHandler])
 
   // Handle window resize
   useEffect(() => {
     const handleResize = () => {
-      if (fitAddonRef.current) {
+      if (fitAddonRef.current && isVisible) {
         fitAddonRef.current.fit()
       }
     }
 
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [])
+  }, [isVisible])
 
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!xtermRef.current || !isConnected) return
+      if (!xtermRef.current || !isVisible) return
 
       // Ctrl+, - Open terminal options
       if (e.ctrlKey && e.key === ',') {
@@ -508,16 +538,19 @@ const Terminal: React.FC<TerminalProps> = ({ sessionId, isConnected, onDisconnec
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isConnected, sessionId])
+  }, [isConnected, sessionId, isVisible])
 
-  // Focus terminal when connected
+  // Focus terminal when visible and available
   useEffect(() => {
-    if (isConnected && xtermRef.current && !isOptionsModalOpen) {
+    if (isVisible && xtermRef.current && !isOptionsModalOpen) {
       xtermRef.current.focus()
     }
-  }, [isConnected, isOptionsModalOpen])
+  }, [isVisible, isOptionsModalOpen])
 
-  if (!isConnected) {
+  // Show welcome screen only when no session exists and not connected
+  const shouldShowWelcome = (!sessionId || sessionId === null) && !isConnected
+  
+  if (shouldShowWelcome) {
     return (
       <div className="terminal-container">
         <div className="terminal-welcome">
@@ -529,6 +562,24 @@ const Terminal: React.FC<TerminalProps> = ({ sessionId, isConnected, onDisconnec
               height="250"
             />
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Show connecting state for sessions that are being established
+  if (!isConnected && sessionId === '') {
+    return (
+      <div className="terminal-container">
+        <div className="terminal-connecting">
+          <div className="connecting-spinner">
+            <svg width="32" height="32" viewBox="0 0 32 32">
+              <circle cx="16" cy="16" r="12" fill="none" stroke="currentColor" strokeWidth="3" strokeDasharray="18" strokeLinecap="round">
+                <animateTransform attributeName="transform" type="rotate" values="0 16 16;360 16 16" dur="1s" repeatCount="indefinite"/>
+              </circle>
+            </svg>
+          </div>
+          <p>Connecting to server...</p>
         </div>
       </div>
     )
