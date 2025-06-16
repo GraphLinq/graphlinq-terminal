@@ -1,0 +1,28 @@
+{
+  "name": "docker-manager",
+  "displayName": "Docker Manager",
+  "version": "1.0.0",
+  "description": "Manage Docker containers and images directly from the terminal",
+  "author": "GraphLinq Team",
+  "license": "MIT",
+  "entry": "index.js",
+  "minAppVersion": "1.0.0",
+  "maxAppVersion": "2.0.0",
+  "category": "development",
+  "permissions": [
+    "terminal.execute",
+    "terminal.read",
+    "ui.sidebar",
+    "ui.notification",
+    "ui.modal",
+    "storage.local"
+  ],
+  "categories": ["development", "devops"],
+  "keywords": ["docker", "containers", "devops"],
+  "homepage": "https://github.com/graphlinq/terminal-plugins/docker-manager",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/graphlinq/terminal-plugins"
+  },
+  "icon": "docker-icon.svg"
+} 

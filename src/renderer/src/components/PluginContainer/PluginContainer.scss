@@ -1,0 +1,267 @@
+@import '../../styles/_variables.scss';
+
+.plugin-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  
+  &--disabled {
+    opacity: 0.6;
+    pointer-events: none;
+    filter: grayscale(50%);
+  }
+  
+  &--error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    padding: 20px;
+  }
+}
+
+.plugin-error {
+  background: rgba($bg-secondary, 0.95);
+  border: 1px solid rgba($error-color, 0.3);
+  border-radius: $border-radius-lg;
+  padding: 24px;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba($border-color, 0.2);
+  }
+  
+  &__icon {
+    font-size: 24px;
+    filter: drop-shadow(0 0 8px rgba($error-color, 0.5));
+  }
+  
+  &__title {
+    font-size: 18px;
+    font-weight: 600;
+    color: $error-color;
+  }
+  
+  &__content {
+    margin-bottom: 20px;
+  }
+  
+  &__plugin-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    
+    strong {
+      color: $text-primary;
+      font-weight: 600;
+    }
+  }
+  
+  &__version {
+    background: rgba($accent-primary, 0.2);
+    color: $accent-primary;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  
+  &__message {
+    color: $text-secondary;
+    line-height: 1.5;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: rgba($error-color, 0.1);
+    border-radius: $border-radius;
+    border-left: 3px solid $error-color;
+  }
+  
+  &__details {
+    details {
+      cursor: pointer;
+      
+      summary {
+        color: $text-muted;
+        font-size: 14px;
+        padding: 8px 0;
+        user-select: none;
+        
+        &:hover {
+          color: $text-secondary;
+        }
+      }
+    }
+  }
+  
+  &__stack {
+    background: rgba($bg-primary, 0.8);
+    border: 1px solid rgba($border-color, 0.3);
+    border-radius: $border-radius;
+    padding: 12px;
+    font-family: $font-mono;
+    font-size: 12px;
+    color: $text-muted;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 8px;
+    
+    &::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: rgba($bg-tertiary, 0.3);
+      border-radius: 3px;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: rgba($text-muted, 0.3);
+      border-radius: 3px;
+      
+      &:hover {
+        background: rgba($text-muted, 0.5);
+      }
+    }
+  }
+  
+  &__actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+  }
+  
+  &__button {
+    padding: 8px 16px;
+    border-radius: $border-radius;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all $transition-normal;
+    border: 1px solid transparent;
+    
+    &--primary {
+      background: $accent-primary;
+      color: white;
+      
+      &:hover {
+        background: lighten($accent-primary, 10%);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba($accent-primary, 0.3);
+      }
+      
+      &:active {
+        transform: translateY(0);
+      }
+    }
+    
+    &--secondary {
+      background: transparent;
+      color: $text-secondary;
+      border-color: rgba($border-color, 0.5);
+      
+      &:hover {
+        background: rgba($bg-tertiary, 0.5);
+        border-color: rgba($border-color, 0.8);
+        color: $text-primary;
+      }
+      
+      &:active {
+        background: rgba($bg-tertiary, 0.8);
+      }
+    }
+  }
+}
+
+// Plugin container animations
+.plugin-container {
+  animation: pluginFadeIn 0.3s ease-out;
+}
+
+@keyframes pluginFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Plugin loading state
+.plugin-container--loading {
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba($bg-secondary, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+  }
+  
+  &::after {
+    content: 'Loading Plugin...';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: $text-secondary;
+    font-size: 14px;
+    z-index: 1001;
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .plugin-error {
+    margin: 10px;
+    padding: 16px;
+    
+    &__actions {
+      flex-direction: column;
+      
+      .plugin-error__button {
+        width: 100%;
+      }
+    }
+  }
+}
+
+// Dark mode specific adjustments
+@media (prefers-color-scheme: dark) {
+  .plugin-error {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  }
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .plugin-error {
+    border-width: 2px;
+    
+    &__message {
+      border-left-width: 4px;
+    }
+  }
+} 

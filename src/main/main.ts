@@ -566,6 +566,120 @@ ipcMain.handle('ssh-get-sessions', async () => {
   }
 })
 
+// Plugin system IPC handlers
+ipcMain.handle('plugin:get-plugins-directory', () => {
+  return join(process.cwd(), 'plugins')
+})
+
+ipcMain.handle('plugin:file-exists', async (event, filePath: string) => {
+  try {
+    // Security: Only allow access to plugins directory
+    const pluginsDir = join(process.cwd(), 'plugins')
+    const fullPath = join(pluginsDir, filePath.replace('plugins/', ''))
+    
+    // Ensure the path is within the plugins directory
+    if (!fullPath.startsWith(pluginsDir)) {
+      throw new Error('Access denied: Path outside plugins directory')
+    }
+    
+    return existsSync(fullPath)
+  } catch (error) {
+    console.error('Error checking file existence:', error)
+    return false
+  }
+})
+
+ipcMain.handle('plugin:read-file', async (event, filePath: string) => {
+  try {
+    // Security: Only allow access to plugins directory
+    const pluginsDir = join(process.cwd(), 'plugins')
+    const fullPath = join(pluginsDir, filePath.replace('plugins/', ''))
+    
+    // Ensure the path is within the plugins directory
+    if (!fullPath.startsWith(pluginsDir)) {
+      throw new Error('Access denied: Path outside plugins directory')
+    }
+    
+    if (!existsSync(fullPath)) {
+      throw new Error(`File not found: ${filePath}`)
+    }
+    
+    const content = await fs.readFile(fullPath, 'utf8')
+    return content
+  } catch (error: any) {
+    console.error('Error reading file:', error)
+    throw new Error(`Failed to read file: ${error.message}`)
+  }
+})
+
+ipcMain.handle('plugin:read-directory', async (event, dirPath: string) => {
+  try {
+    // Security: Only allow access to plugins directory
+    const pluginsDir = join(process.cwd(), 'plugins')
+    const fullPath = dirPath === 'plugins' ? pluginsDir : join(pluginsDir, dirPath.replace('plugins/', ''))
+    
+    // Ensure the path is within the plugins directory
+    if (!fullPath.startsWith(pluginsDir)) {
+      throw new Error('Access denied: Path outside plugins directory')
+    }
+    
+    if (!existsSync(fullPath)) {
+      return []
+    }
+    
+    const items = await fs.readdir(fullPath, { withFileTypes: true })
+    return items
+      .filter(item => item.isDirectory())
+      .map(item => item.name)
+  } catch (error: any) {
+    console.error('Error reading directory:', error)
+    return []
+  }
+})
+
+ipcMain.handle('plugin:get-directory-size', async (event, dirPath: string) => {
+  try {
+    // Security: Only allow access to plugins directory
+    const pluginsDir = join(process.cwd(), 'plugins')
+    const fullPath = join(pluginsDir, dirPath.replace('plugins/', ''))
+    
+    // Ensure the path is within the plugins directory
+    if (!fullPath.startsWith(pluginsDir)) {
+      throw new Error('Access denied: Path outside plugins directory')
+    }
+    
+    if (!existsSync(fullPath)) {
+      return 0
+    }
+    
+    // Calculate directory size recursively
+    const calculateSize = async (path: string): Promise<number> => {
+      const stats = await fs.stat(path)
+      
+      if (stats.isFile()) {
+        return stats.size
+      } else if (stats.isDirectory()) {
+        const items = await fs.readdir(path)
+        let totalSize = 0
+        
+        for (const item of items) {
+          const itemPath = join(path, item)
+          totalSize += await calculateSize(itemPath)
+        }
+        
+        return totalSize
+      }
+      
+      return 0
+    }
+    
+    return await calculateSize(fullPath)
+  } catch (error: any) {
+    console.error('Error calculating directory size:', error)
+    return 0
+  }
+})
+
 // This method will be called when Electron has finished initialization
 app.whenReady().then(() => {
   createWindow()

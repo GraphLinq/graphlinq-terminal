@@ -6,8 +6,12 @@ import AIAssistantPanel from './components/AIAssistantPanel'
 import AboutModal from './components/AboutModal'
 import SSHKeyGeneratorModal from './components/SSHKeyGeneratorModal'
 import FileExplorer from './components/FileExplorer'
+import PluginManager from './components/PluginManager/PluginManager'
+import PluginPanels from './components/PluginPanels/PluginPanels'
 import { Server } from './services/serverService'
 import { sshService, SSHConnectionConfig } from './services/sshService'
+import { pluginManager } from './services/pluginManager'
+import { pluginAPI } from './services/pluginAPI'
 import { 
   RiSettings3Line, 
   RiTerminalBoxLine, 
@@ -15,7 +19,8 @@ import {
   RiFolderOpenLine, 
   RiCodeLine, 
   RiInformationLine,
-  RiMoreLine
+  RiMoreLine,
+  RiPlugLine
 } from 'react-icons/ri'
 import { 
   FaKey, 
@@ -37,6 +42,7 @@ function App() {
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false)
   const [isSSHKeyGenModalOpen, setIsSSHKeyGenModalOpen] = useState(false)
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState(false)
+  const [isPluginManagerOpen, setIsPluginManagerOpen] = useState(false)
 
   // Get platform info
   useEffect(() => {
@@ -47,6 +53,35 @@ function App() {
       }
     }
     getPlatformInfo()
+  }, [])
+
+  // Initialize plugin system
+  useEffect(() => {
+    const initializePlugins = async () => {
+      try {
+        await pluginManager.initialize()
+        
+        // Set up plugin API callbacks
+        pluginAPI.setUICallbacks({
+          showNotification: (message: string, type: 'info' | 'success' | 'warning' | 'error') => {
+            console.log(`[Plugin Notification - ${type.toUpperCase()}] ${message}`)
+            // Here you would integrate with your notification system
+          },
+          openModal: async (component: React.ComponentType, props?: any) => {
+            console.log('Plugin requested to open modal:', component, props)
+            // Here you would integrate with your modal system
+            return Promise.resolve()
+          }
+        })
+        
+        console.log('Plugin system initialized successfully')
+        console.log('Loaded plugins:', pluginManager.getLoadedPlugins().map(p => p.manifest.displayName))
+      } catch (error) {
+        console.error('Failed to initialize plugin system:', error)
+      }
+    }
+
+    initializePlugins()
   }, [])
 
   // Close menu when clicking outside
@@ -171,32 +206,42 @@ function App() {
     setIsConnecting(true)
     
     try {
-      const sshConfig: SSHConnectionConfig = {
+      const config: SSHConnectionConfig = {
         host: server.host,
         port: server.port,
         username: server.username,
-        authType: server.authType as 'password' | 'privateKey',
         password: server.password,
-        privateKeyPath: server.privateKeyPath
+        privateKey: server.privateKey
       }
 
-      const result = await sshService.connect(sshConfig)
+      const sessionId = await sshService.connect(config)
       
-      if (result.success && result.sessionId) {
-        setConnectedServer(server)
-        setIsConnected(true)
-        setSshSessionId(result.sessionId)
-        
-        // Close sidebar after connection
-        setSidebarOpen(false)
-        
-        // Automatically open AI Assistant panel when connected
-        setIsAIAssistantOpen(true)
-      } else {
-        console.error('Connection failed:', result.error)
+      setIsConnected(true)
+      setConnectedServer(server)
+      setSshSessionId(sessionId)
+      
+      // Close sidebar after connection
+      setSidebarOpen(false)
+      
+      // Automatically open AI Assistant panel when connected
+      setIsAIAssistantOpen(true)
+
+      // Notify plugins about server connection
+      const sessionInfo = {
+        id: sessionId,
+        host: server.host,
+        port: server.port,
+        username: server.username,
+        isConnected: true,
+        currentDirectory: '~'
       }
+      
+      await pluginManager.onServerConnect(sessionInfo)
+      
+      console.log(`Connected to ${server.name}`)
     } catch (error: any) {
-      console.error('Connection error:', error)
+      console.error('Connection failed:', error)
+      alert(`Failed to connect to ${server.name}: ${error}`)
     } finally {
       setIsConnecting(false)
     }
@@ -221,6 +266,9 @@ function App() {
     
     // Close AI Assistant panel when disconnected
     setIsAIAssistantOpen(false)
+
+    // Notify plugins about server disconnection
+    await pluginManager.onServerDisconnect()
   }
 
   // Menu component
@@ -257,7 +305,10 @@ function App() {
             <div className="menu-section-title">Tools</div>
             <button 
               className="menu-item"
-              onClick={handleOpenSSHKeyGen}
+              onClick={() => {
+                setIsSSHKeyGenModalOpen(true);
+                setMenuOpen(false);
+              }}
             >
               <FaKey className="menu-icon" />
               <span className="menu-text">SSH Key Generator</span>
@@ -268,6 +319,7 @@ function App() {
                 handleToggleAIAssistant();
                 setMenuOpen(false);
               }}
+              disabled={!isConnected}
             >
               <RiRobotLine className="menu-icon" />
               <span className="menu-text">AI Assistant</span>
@@ -279,9 +331,20 @@ function App() {
                 handleToggleFileExplorer();
                 setMenuOpen(false);
               }}
+              disabled={!isConnected}
             >
               <RiFolderOpenLine className="menu-icon" />
               <span className="menu-text">File Explorer</span>
+            </button>
+            <button 
+              className="menu-item"
+              onClick={() => {
+                setIsPluginManagerOpen(true);
+                setMenuOpen(false);
+              }}
+            >
+              <RiPlugLine className="menu-icon" />
+              <span className="menu-text">Plugin Manager</span>
             </button>
           </div>
           
@@ -447,6 +510,9 @@ function App() {
           isOpen={isFileExplorerOpen}
           onToggle={handleToggleFileExplorer}
         />
+
+        {/* Plugin Panels */}
+        <PluginPanels isConnected={isConnected} />
       </div>
 
       {/* Footer avec informations de connexion */}
@@ -504,6 +570,11 @@ function App() {
       <SSHKeyGeneratorModal
         isOpen={isSSHKeyGenModalOpen}
         onClose={() => setIsSSHKeyGenModalOpen(false)}
+      />
+
+      <PluginManager
+        isOpen={isPluginManagerOpen}
+        onClose={() => setIsPluginManagerOpen(false)}
       />
     </div>
   )

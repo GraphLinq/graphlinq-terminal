@@ -71,6 +71,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // SSH Key generation
   generateSSHKey: (config: any) => ipcRenderer.invoke('generate-ssh-key', config),
+  
+  // Plugin system file operations
+  fileExists: (path: string) => ipcRenderer.invoke('plugin:file-exists', path),
+  readFile: (path: string) => ipcRenderer.invoke('plugin:read-file', path),
+  readDirectory: (path: string) => ipcRenderer.invoke('plugin:read-directory', path),
+  getDirectorySize: (path: string) => ipcRenderer.invoke('plugin:get-directory-size', path),
+  getPluginsDirectory: () => ipcRenderer.invoke('plugin:get-plugins-directory'),
 })
 
 // Type definitions for the exposed API
@@ -106,7 +113,13 @@ declare global {
       openExternal: (url: string) => Promise<void>
       openServersFolder: () => Promise<void>
       selectDirectory: () => Promise<any>
+      selectFilesForUpload: () => Promise<any>
       generateSSHKey: (config: any) => Promise<any>
+      fileExists: (path: string) => Promise<boolean>
+      readFile: (path: string) => Promise<string>
+      readDirectory: (path: string) => Promise<string[]>
+      getDirectorySize: (path: string) => Promise<number>
+      getPluginsDirectory: () => Promise<string>
     }
   }
 } 

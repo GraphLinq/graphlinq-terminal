@@ -24,6 +24,12 @@ $accent-orange: #f59e0b;
 $accent-purple: #8b5cf6;
 $accent-green: #10b981;
 
+// Status Colors
+$success-color: #10b981;
+$error-color: #ef4444;
+$warning-color: #f59e0b;
+$info-color: #3b82f6;
+
 // GraphLinq Brand Colors
 $brand-primary: #8b5cf6;
 $brand-secondary: #a855f7;
@@ -75,6 +81,10 @@ $sidebar-max-width: 600px;
 $file-explorer-width: 800px;
 $file-explorer-min-width: 300px;
 $file-explorer-max-width: 800px;
+
+// Border Radius
 $border-radius: 4px;
+$border-radius-sm: 3px;
 $border-radius-small: 3px;
+$border-radius-lg: 8px;
 $border-radius-large: 8px; 
